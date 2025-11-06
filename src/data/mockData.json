@@ -1,0 +1,322 @@
+{
+  "shops": [
+    {
+      "id": 1,
+      "name": "คาเฟ่ในสวนใบไม้",
+      "description": "คาเฟ่บรรยากาศธรรมชาติ ให้บริการเครื่องดื่มและของหวานโฮมเมด พร้อมมุมถ่ายรูปสวยๆ",
+      "price_range": "฿฿",
+      "open_time": "08:00",
+      "close_time": "18:00",
+      "category": "คาเฟ่",
+      "category_id": 1,
+      "subcategory": "กาแฟ & เบเกอรี่",
+      "subcategory_id": 101,
+      "location": {
+        "latitude": 13.7563,
+        "longitude": 100.5018
+      },
+      "address": {
+        "house_number": "123/4",
+        "village": "5",
+        "soi": "สุขุมวิท 50",
+        "province": "กรุงเทพมหานคร",
+        "district": "คลองเตย",
+        "subdistrict": "พระโขนง",
+        "postal_code": "10110"
+      },
+      "phone": "0812345678",
+      "images": [
+        "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
+      ],
+      "has_air_purifier": true,
+      "has_fresh_air_system": false,
+      "status": "published",
+      "created_at": "2025-01-15T10:30:00Z",
+      "updated_at": "2025-01-20T14:22:00Z",
+      "created_by": {
+        "id": 101,
+        "name": "สมชาย ใจดี",
+        "email": "somchai@example.com"
+      }
+    },
+    {
+      "id": 2,
+      "name": "หอมหมูกระทะ",
+      "description": "ร้านหมูกระทะบรรยากาศอบอุ่น เหมาะสำหรับครอบครัว บุฟเฟ่ต์เนื้อสดใหม่ทุกวัน",
+      "price_range": "฿฿",
+      "open_time": "16:00",
+      "close_time": "23:00",
+      "category": "ร้านอาหาร",
+      "category_id": 2,
+      "subcategory": "ปิ้งย่าง & หมูกระทะ",
+      "subcategory_id": 201,
+      "location": {
+        "latitude": 18.7883,
+        "longitude": 98.9853
+      },
+      "address": {
+        "house_number": "45",
+        "village": "2",
+        "soi": "",
+        "province": "เชียงใหม่",
+        "district": "เมืองเชียงใหม่",
+        "subdistrict": "ศรีภูมิ",
+        "postal_code": "50200"
+      },
+      "phone": "0899999999",
+      "images": [
+        "https://images.unsplash.com/photo-1504674900247-0877df9cc836"
+      ],
+      "has_air_purifier": false,
+      "has_fresh_air_system": true,
+      "status": "pending",
+      "created_at": "2025-02-01T09:15:00Z",
+      "updated_at": "2025-02-01T09:15:00Z",
+      "created_by": {
+        "id": 102,
+        "name": "สมหญิง รักสะอาด",
+        "email": "somying@example.com"
+      }
+    },
+    {
+      "id": 3,
+      "name": "โคโค่สมูทตี้บาร์",
+      "description": "เครื่องดื่มสุขภาพ สมูทตี้ผลไม้แท้ 100% ไม่ใส่น้ำตาล ไม่ใส่น้ำแข็ง",
+      "price_range": "฿",
+      "open_time": "10:00",
+      "close_time": "20:00",
+      "category": "เครื่องดื่ม",
+      "category_id": 3,
+      "subcategory": "สมูทตี้ & น้ำผลไม้",
+      "subcategory_id": 301,
+      "location": {
+        "latitude": 14.0206,
+        "longitude": 100.525
+      },
+      "address": {
+        "house_number": "88/9",
+        "village": "1",
+        "soi": "ประชาอุทิศ",
+        "province": "ปทุมธานี",
+        "district": "ธัญบุรี",
+        "subdistrict": "คลองหก",
+        "postal_code": "12110"
+      },
+      "phone": "0822222222",
+      "images": [
+        "https://images.unsplash.com/photo-1610970881699-44a5587cabec",
+        "https://images.unsplash.com/photo-1622597467836-f3c7ca9d6f89",
+        "https://images.unsplash.com/photo-1505252585461-04db1eb84625"
+      ],
+      "has_air_purifier": true,
+      "has_fresh_air_system": true,
+      "status": "published",
+      "created_at": "2025-01-28T11:45:00Z",
+      "updated_at": "2025-02-03T16:30:00Z",
+      "created_by": {
+        "id": 103,
+        "name": "วิไล สุขใจ",
+        "email": "wilai@example.com"
+      }
+    },
+    {
+      "id": 4,
+      "name": "ราเมงโตเกียว",
+      "description": "ราเมงสไตล์ญี่ปุ่นแท้ๆ น้ำซุปเข้มข้น หมูชาชูนุ่มละลาย",
+      "price_range": "฿฿฿",
+      "open_time": "11:00",
+      "close_time": "22:00",
+      "category": "ร้านอาหาร",
+      "category_id": 2,
+      "subcategory": "อาหารญี่ปุ่น",
+      "subcategory_id": 202,
+      "location": {
+        "latitude": 13.7465,
+        "longitude": 100.5352
+      },
+      "address": {
+        "house_number": "256",
+        "village": "",
+        "soi": "ทองหล่อ 10",
+        "province": "กรุงเทพมหานคร",
+        "district": "วัฒนา",
+        "subdistrict": "คลองเตยเหนือ",
+        "postal_code": "10110"
+      },
+      "phone": "0833333333",
+      "images": [
+        "https://images.unsplash.com/photo-1557872943-16a5ac26437e",
+        "https://images.unsplash.com/photo-1569718212165-3a8278d5f624"
+      ],
+      "has_air_purifier": true,
+      "has_fresh_air_system": true,
+      "status": "published",
+      "created_at": "2025-01-10T08:20:00Z",
+      "updated_at": "2025-01-25T10:15:00Z",
+      "created_by": {
+        "id": 104,
+        "name": "ทาคาชิ ยามาดะ",
+        "email": "takashi@example.com"
+      }
+    },
+    {
+      "id": 5,
+      "name": "สวนอาหารริมทะเล",
+      "description": "ร้านอาหารทะเล วิวทะเลสวย อาหารสดใหม่จากท้องทะเลทุกวัน",
+      "price_range": "฿฿฿",
+      "open_time": "10:00",
+      "close_time": "22:00",
+      "category": "ร้านอาหาร",
+      "category_id": 2,
+      "subcategory": "อาหารทะเล",
+      "subcategory_id": 203,
+      "location": {
+        "latitude": 7.8804,
+        "longitude": 98.3923
+      },
+      "address": {
+        "house_number": "199",
+        "village": "3",
+        "soi": "",
+        "province": "ภูเก็ต",
+        "district": "เมืองภูเก็ต",
+        "subdistrict": "ราไวย์",
+        "postal_code": "83100"
+      },
+      "phone": "0844444444",
+      "images": [
+        "https://images.unsplash.com/photo-1559339352-11d035aa65de",
+        "https://images.unsplash.com/photo-1544025162-d76694265947"
+      ],
+      "has_air_purifier": false,
+      "has_fresh_air_system": true,
+      "status": "pending",
+      "created_at": "2025-02-05T13:00:00Z",
+      "updated_at": "2025-02-05T13:00:00Z",
+      "created_by": {
+        "id": 105,
+        "name": "ประเสริฐ ทะเลสวย",
+        "email": "prasert@example.com"
+      }
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "คาเฟ่",
+      "icon": "coffee",
+      "color": "#8B4513"
+    },
+    {
+      "id": 2,
+      "name": "ร้านอาหาร",
+      "icon": "restaurant",
+      "color": "#FF6B6B"
+    },
+    {
+      "id": 3,
+      "name": "เครื่องดื่ม",
+      "icon": "local_bar",
+      "color": "#4ECDC4"
+    },
+    {
+      "id": 4,
+      "name": "ร้านขนม",
+      "icon": "cake",
+      "color": "#FFB6C1"
+    },
+    {
+      "id": 5,
+      "name": "บาร์",
+      "icon": "wine_bar",
+      "color": "#9B59B6"
+    }
+  ],
+  "subcategories": {
+    "1": [
+      { "id": 101, "name": "กาแฟ & เบเกอรี่", "type_id": 1 },
+      { "id": 102, "name": "คาเฟ่สไตล์มินิมอล", "type_id": 1 },
+      { "id": 103, "name": "คาเฟ่สวน/ธรรมชาติ", "type_id": 1 }
+    ],
+    "2": [
+      { "id": 201, "name": "ปิ้งย่าง & หมูกระทะ", "type_id": 2 },
+      { "id": 202, "name": "อาหารญี่ปุ่น", "type_id": 2 },
+      { "id": 203, "name": "อาหารทะเล", "type_id": 2 },
+      { "id": 204, "name": "อาหารไทย", "type_id": 2 },
+      { "id": 205, "name": "อาหารจีน", "type_id": 2 }
+    ],
+    "3": [
+      { "id": 301, "name": "สมูทตี้ & น้ำผลไม้", "type_id": 3 },
+      { "id": 302, "name": "ชาไข่มุก", "type_id": 3 },
+      { "id": 303, "name": "น้ำปั่น", "type_id": 3 }
+    ],
+    "4": [
+      { "id": 401, "name": "เบเกอรี่", "type_id": 4 },
+      { "id": 402, "name": "ขนมไทย", "type_id": 4 }
+    ],
+    "5": [
+      { "id": 501, "name": "บาร์ค็อกเทล", "type_id": 5 },
+      { "id": 502, "name": "ผับ", "type_id": 5 }
+    ]
+  },
+  "provinces": [
+    "กรุงเทพมหานคร",
+    "เชียงใหม่",
+    "ปทุมธานี",
+    "ภูเก็ต",
+    "ขอนแก่น",
+    "นครราชสีมา",
+    "สงขลา",
+    "ระยอง"
+  ],
+  "dashboard_stats": {
+    "total_shops": 248,
+    "pending_shops": 12,
+    "new_today": 5,
+    "total_revenue": 1250000,
+    "shops_with_air_purifier": 156,
+    "shops_with_fresh_air": 89,
+    "active_users": 342
+  },
+  "monthly_data": [
+    { "month": "ม.ค.", "shops": 42, "revenue": 180000 },
+    { "month": "ก.พ.", "shops": 38, "revenue": 165000 },
+    { "month": "มี.ค.", "shops": 45, "revenue": 195000 },
+    { "month": "เม.ย.", "shops": 52, "revenue": 220000 },
+    { "month": "พ.ค.", "shops": 48, "revenue": 210000 },
+    { "month": "มิ.ย.", "shops": 23, "revenue": 95000 }
+  ],
+  "users": [
+    {
+      "id": 101,
+      "name": "สมชาย ใจดี",
+      "email": "somchai@example.com",
+      "phone": "0812345678",
+      "role": "owner",
+      "avatar": "https://i.pravatar.cc/150?img=12",
+      "shops_count": 1,
+      "joined_date": "2025-01-10"
+    },
+    {
+      "id": 102,
+      "name": "สมหญิง รักสะอาด",
+      "email": "somying@example.com",
+      "phone": "0899999999",
+      "role": "owner",
+      "avatar": "https://i.pravatar.cc/150?img=45",
+      "shops_count": 1,
+      "joined_date": "2025-02-01"
+    },
+    {
+      "id": 201,
+      "name": "ผู้ดูแลระบบ Admin",
+      "email": "admin@arkaddee.com",
+      "phone": "0801234567",
+      "role": "admin",
+      "avatar": "https://i.pravatar.cc/150?img=68",
+      "shops_count": 0,
+      "joined_date": "2024-01-01"
+    }
+  ]
+}
