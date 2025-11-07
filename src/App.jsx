@@ -3,6 +3,11 @@ import MainLayout from './components/layout/MainLayout';
 import Dashboard from './components/dashboard/Dashboard';
 import ShopList from './components/shops/ShopList';
 import ShopRegistrationForm from './components/shops/ShopRegistrationForm';
+import ShopEditPage from './components/shops/ShopEditPage';
+import ShopDetailPage from './components/shops/ShopDetailPage';
+import UserList from './components/users/UserList';
+import ReportsPage from './components/reports/ReportsPage';
+import SettingsPage from './components/settings/SettingsPage';
 import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -34,6 +39,8 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="profile" element={<ProfilePage />} />
+          
+          {/* Shop Routes */}
           <Route path="shops" element={<ShopList />} />
           <Route path="shops/create" element={
             <div className="space-y-6">
@@ -47,24 +54,33 @@ function App() {
               />
             </div>
           } />
-          <Route path="users" element={
+          <Route path="shops/:id" element={<ShopDetailPage />} />
+          <Route path="shops/:id/edit" element={<ShopEditPage />} />
+          
+          {/* User Routes */}
+          <Route path="users" element={<UserList />} />
+          <Route path="users/create" element={
             <div className="text-center py-12">
-              <h2 className="text-2xl font-bold text-gray-900">จัดการผู้ใช้งาน</h2>
+              <h2 className="text-2xl font-bold text-gray-900">เพิ่มผู้ใช้ใหม่</h2>
               <p className="text-gray-600 mt-2">Coming soon...</p>
             </div>
           } />
-          <Route path="reports" element={
+          <Route path="users/:id" element={
             <div className="text-center py-12">
-              <h2 className="text-2xl font-bold text-gray-900">รายงานสถิติ</h2>
+              <h2 className="text-2xl font-bold text-gray-900">รายละเอียดผู้ใช้</h2>
               <p className="text-gray-600 mt-2">Coming soon...</p>
             </div>
           } />
-          <Route path="settings" element={
+          <Route path="users/:id/edit" element={
             <div className="text-center py-12">
-              <h2 className="text-2xl font-bold text-gray-900">การตั้งค่า</h2>
+              <h2 className="text-2xl font-bold text-gray-900">แก้ไขผู้ใช้</h2>
               <p className="text-gray-600 mt-2">Coming soon...</p>
             </div>
           } />
+          
+          {/* Other Routes */}
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* Fallback */}

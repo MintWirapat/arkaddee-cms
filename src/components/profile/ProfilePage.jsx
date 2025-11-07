@@ -40,7 +40,6 @@ const ProfilePage = () => {
       ...prev,
       [name]: value
     }));
-    // Clear error when typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -60,6 +59,18 @@ const ProfilePage = () => {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('ไฟล์รูปภาพต้องมีขนาดไม่เกิน 5MB');
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setEditData(prev => ({
@@ -124,13 +135,14 @@ const ProfilePage = () => {
 
     setLoading(true);
     
-    // Simulate API call
     setTimeout(() => {
       setUserData(editData);
       localStorage.setItem('user', JSON.stringify(editData));
       setIsEditing(false);
       setLoading(false);
-      alert('บันทึกข้อมูลสำเร็จ!');
+      alert('✅ บันทึกข้อมูลสำเร็จ!\n\nรูปโปรไฟล์จะอัพเดทใน Sidebar และ Navbar ทันที');
+      // Reload to update Sidebar and Navbar
+      window.location.reload();
     }, 1000);
   };
 
@@ -147,7 +159,6 @@ const ProfilePage = () => {
 
     setLoading(true);
 
-    // Simulate API call
     setTimeout(() => {
       setIsChangingPassword(false);
       setPasswordData({
@@ -176,8 +187,8 @@ const ProfilePage = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex flex-col items-center">
               {/* Avatar */}
-              <div className="relative group">
-                <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+              <div className="relative group mb-4">
+                <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center ring-4 ring-gray-100">
                   {editData.avatar ? (
                     <img 
                       src={editData.avatar} 
@@ -189,9 +200,13 @@ const ProfilePage = () => {
                   )}
                 </div>
                 
+                {/* Always show upload button when editing */}
                 {isEditing && (
                   <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                    <CameraIcon className="w-8 h-8 text-white" />
+                    <div className="text-center">
+                      <CameraIcon className="w-10 h-10 text-white mx-auto mb-1" />
+                      <span className="text-white text-xs font-medium">เปลี่ยนรูป</span>
+                    </div>
                     <input
                       type="file"
                       accept="image/*"
@@ -202,14 +217,40 @@ const ProfilePage = () => {
                 )}
               </div>
 
+              {/* Upload Button (Always visible when editing) */}
+              {isEditing && (
+                <label className="mb-4 px-4 py-2 bg-indigo-600 text-white rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center space-x-2">
+                  <CameraIcon className="w-4 h-4" />
+                  <span>เลือกรูปภาพ</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+
               {/* User Info */}
-              <div className="mt-4 text-center">
+              <div className="text-center">
                 <h3 className="text-lg font-bold text-gray-900">{userData.name}</h3>
                 <p className="text-sm text-gray-600 mt-1">{userData.email}</p>
                 <span className="inline-flex items-center px-3 py-1 mt-3 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                   {userData.role}
                 </span>
               </div>
+
+              {/* Helper Text */}
+              {isEditing && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-800 text-center">
+                    💡 คลิกปุ่ม "เลือกรูปภาพ" หรือ Hover ที่รูปเพื่ออัพโหลด
+                  </p>
+                  <p className="text-xs text-blue-600 text-center mt-1">
+                    ไฟล์รูปภาพ JPG, PNG (สูงสุด 5MB)
+                  </p>
+                </div>
+              )}
 
               {/* Stats */}
               <div className="w-full mt-6 pt-6 border-t border-gray-200">

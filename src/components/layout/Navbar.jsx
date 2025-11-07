@@ -80,7 +80,19 @@ const Navbar = ({ onMenuClick, sidebarOpen }) => {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <UserCircleIcon className="w-8 h-8 text-gray-600" />
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center ring-2 ring-gray-100">
+                  {user.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt="User Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-semibold text-xs">
+                      {user.name?.charAt(0) || 'A'}
+                    </span>
+                  )}
+                </div>
               </button>
             </div>
 
