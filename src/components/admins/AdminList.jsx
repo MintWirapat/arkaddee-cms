@@ -10,78 +10,63 @@ import {
   FunnelIcon
 } from '@heroicons/react/24/outline';
 
-const UserList = () => {
+const AdminList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Mock data
-  const [users] = useState([
+  // Mock data - เฉพาะ Admin และ Staff
+  const [admins] = useState([
     {
       id: 1,
       name: 'สมชาย ใจดี',
-      email: 'somchai@example.com',
+      email: 'somchai@arkaddee.com',
       phone: '0812345678',
       role: 'Admin',
       status: 'active',
-      shops: 5,
       created_at: '2025-01-15',
       avatar: null
     },
     {
       id: 2,
       name: 'สมหญิง รักสงบ',
-      email: 'somying@example.com',
+      email: 'somying@arkaddee.com',
       phone: '0898765432',
-      role: 'Shop Owner',
+      role: 'Staff',
       status: 'active',
-      shops: 12,
       created_at: '2025-02-01',
       avatar: null
     },
     {
       id: 3,
       name: 'วิชัย มานะ',
-      email: 'wichai@example.com',
+      email: 'wichai@arkaddee.com',
       phone: '0856789012',
-      role: 'Shop Owner',
+      role: 'Staff',
       status: 'inactive',
-      shops: 3,
       created_at: '2024-12-10',
       avatar: null
     },
     {
       id: 4,
       name: 'ประภา สว่าง',
-      email: 'prapa@example.com',
+      email: 'prapa@arkaddee.com',
       phone: '0823456789',
-      role: 'Moderator',
+      role: 'Admin',
       status: 'active',
-      shops: 0,
       created_at: '2025-01-20',
-      avatar: null
-    },
-    {
-      id: 5,
-      name: 'สุรชัย ดีงาม',
-      email: 'surachai@example.com',
-      phone: '0891234567',
-      role: 'Shop Owner',
-      status: 'pending',
-      shops: 1,
-      created_at: '2025-03-01',
       avatar: null
     }
   ]);
 
-  const filteredUsers = users.filter(user => {
+  const filteredAdmins = admins.filter(admin => {
     const matchesSearch = 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone.includes(searchTerm);
+      admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      admin.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      admin.phone.includes(searchTerm);
     
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    const matchesRole = roleFilter === 'all' || admin.role === roleFilter;
+    const matchesStatus = statusFilter === 'all' || admin.status === statusFilter;
 
     return matchesSearch && matchesRole && matchesStatus;
   });
@@ -89,11 +74,9 @@ const UserList = () => {
   const getRoleBadge = (role) => {
     const config = {
       'Admin': { label: 'ผู้ดูแลระบบ', className: 'bg-red-100 text-red-800' },
-      'Moderator': { label: 'ผู้ตรวจสอบ', className: 'bg-blue-100 text-blue-800' },
-      'Shop Owner': { label: 'เจ้าของร้าน', className: 'bg-purple-100 text-purple-800' },
-      'User': { label: 'ผู้ใช้งาน', className: 'bg-gray-100 text-gray-800' }
+      'Staff': { label: 'พนักงาน', className: 'bg-blue-100 text-blue-800' }
     };
-    const { label, className } = config[role] || config.User;
+    const { label, className } = config[role] || config.Admin;
     return <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${className}`}>{label}</span>;
   };
 
@@ -109,17 +92,17 @@ const UserList = () => {
   };
 
   const handleDelete = (id, name) => {
-    if (window.confirm(`คุณต้องการลบผู้ใช้ "${name}" หรือไม่?`)) {
-      console.log('Deleting user:', id);
-      alert('ลบผู้ใช้สำเร็จ');
+    if (window.confirm(`คุณต้องการลบผู้ดูแลระบบ "${name}" หรือไม่?`)) {
+      console.log('Deleting admin:', id);
+      alert('ลบผู้ดูแลระบบสำเร็จ');
     }
   };
 
   const stats = [
-    { label: 'ผู้ใช้ทั้งหมด', value: users.length, color: 'bg-blue-500' },
-    { label: 'ใช้งานอยู่', value: users.filter(u => u.status === 'active').length, color: 'bg-green-500' },
-    { label: 'รออนุมัติ', value: users.filter(u => u.status === 'pending').length, color: 'bg-amber-500' },
-    { label: 'เจ้าของร้าน', value: users.filter(u => u.role === 'Shop Owner').length, color: 'bg-purple-500' }
+    { label: 'ทั้งหมด', value: admins.length, color: 'bg-blue-500' },
+    { label: 'ใช้งานอยู่', value: admins.filter(a => a.status === 'active').length, color: 'bg-green-500' },
+    { label: 'ผู้ดูแลระบบ', value: admins.filter(a => a.role === 'Admin').length, color: 'bg-red-500' },
+    { label: 'พนักงาน', value: admins.filter(a => a.role === 'Staff').length, color: 'bg-blue-500' }
   ];
 
   return (
@@ -127,17 +110,17 @@ const UserList = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">จัดการผู้ใช้งาน</h1>
+          <h1 className="text-2xl font-bold text-gray-900">ผู้ดูแลระบบ</h1>
           <p className="text-sm text-gray-600 mt-1">
-            ทั้งหมด {filteredUsers.length} ผู้ใช้งาน
+            ทั้งหมด {filteredAdmins.length} คน
           </p>
         </div>
         <Link
-          to="/users/create"
+          to="/admins/create"
           className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <PlusIcon className="w-5 h-5" />
-          <span>เพิ่มผู้ใช้ใหม่</span>
+          <span>เพิ่มผู้ดูแลระบบใหม่</span>
         </Link>
       </div>
 
@@ -184,9 +167,7 @@ const UserList = () => {
             >
               <option value="all">บทบาททั้งหมด</option>
               <option value="Admin">ผู้ดูแลระบบ</option>
-              <option value="Moderator">ผู้ตรวจสอบ</option>
-              <option value="Shop Owner">เจ้าของร้าน</option>
-              <option value="User">ผู้ใช้งาน</option>
+              <option value="Staff">พนักงาน</option>
             </select>
           </div>
 
@@ -214,7 +195,7 @@ const UserList = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  ผู้ใช้งาน
+                  ผู้ดูแลระบบ
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   ติดต่อ
@@ -226,9 +207,6 @@ const UserList = () => {
                   สถานะ
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  ร้านค้า
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   วันที่สมัคร
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
@@ -237,49 +215,45 @@ const UserList = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredUsers.length === 0 ? (
+              {filteredAdmins.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                    ไม่พบข้อมูลผู้ใช้งาน
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
+                    ไม่พบข้อมูลผู้ดูแลระบบ
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                filteredAdmins.map((admin) => (
+                  <tr key={admin.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                          {user.avatar ? (
-                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                          {admin.avatar ? (
+                            <img src={admin.avatar} alt={admin.name} className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-white font-semibold text-sm">
-                              {user.name.charAt(0)}
+                              {admin.name.charAt(0)}
                             </span>
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                          <p className="text-xs text-gray-500">ID: {user.id}</p>
+                          <p className="text-sm font-medium text-gray-900">{admin.name}</p>
+                          <p className="text-xs text-gray-500">ID: {admin.id}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-sm text-gray-900">{user.email}</p>
-                      <p className="text-xs text-gray-500">{user.phone}</p>
+                      <p className="text-sm text-gray-900">{admin.email}</p>
+                      <p className="text-xs text-gray-500">{admin.phone}</p>
                     </td>
                     <td className="px-6 py-4">
-                      {getRoleBadge(user.role)}
+                      {getRoleBadge(admin.role)}
                     </td>
                     <td className="px-6 py-4">
-                      {getStatusBadge(user.status)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-gray-900">{user.shops}</span>
-                      <span className="text-xs text-gray-500 ml-1">ร้าน</span>
+                      {getStatusBadge(admin.status)}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-900">
-                        {new Date(user.created_at).toLocaleDateString('th-TH', {
+                        {new Date(admin.created_at).toLocaleDateString('th-TH', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric'
@@ -289,21 +263,21 @@ const UserList = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-2">
                         <Link
-                          to={`/users/${user.id}`}
+                          to={`/admins/${admin.id}`}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="ดูรายละเอียด"
                         >
                           <EyeIcon className="w-5 h-5" />
                         </Link>
                         <Link
-                          to={`/users/${user.id}/edit`}
+                          to={`/admins/${admin.id}/edit`}
                           className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                           title="แก้ไข"
                         >
                           <PencilIcon className="w-5 h-5" />
                         </Link>
                         <button
-                          onClick={() => handleDelete(user.id, user.name)}
+                          onClick={() => handleDelete(admin.id, admin.name)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="ลบ"
                         >
@@ -322,4 +296,4 @@ const UserList = () => {
   );
 };
 
-export default UserList;
+export default AdminList;

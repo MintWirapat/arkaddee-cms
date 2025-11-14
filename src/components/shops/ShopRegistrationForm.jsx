@@ -3,494 +3,936 @@ import {
   PhotoIcon, 
   MapPinIcon,
   XMarkIcon,
-  PlusIcon
+  PlusIcon,
+  CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
+import axios from 'axios';
 
-const ShopRegistrationForm = ({ initialData = null, onSubmit, onCancel }) => {
+// Days of week for opening hours
+const DAYS_OF_WEEK = [
+  { value: 0, label: 'อาทิตย์' },
+  { value: 1, label: 'จันทร์' },
+  { value: 2, label: 'อังคาร' },
+  { value: 3, label: 'พุธ' },
+  { value: 4, label: 'พฤหัสบดี' },
+  { value: 5, label: 'ศุกร์' },
+  { value: 6, label: 'เสาร์' }
+];
+
+const ShopRegistrationForm = ({ initialData = null, onSubmit, onCancel, isEditMode = false }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price_range: '',
-    open_time: '',
-    close_time: '',
+    average_price_per_person: '',
     category: '',
-    subcategory: '',
     location: {
       latitude: 13.7563,
       longitude: 100.5018
     },
     address: {
+      full_address: '',
       house_number: '',
-      village: '',
+      moo: '',
       soi: '',
-      province: '',
       district: '',
+      province: '',
       subdistrict: '',
       postal_code: ''
     },
     phone: '',
     images: [],
     has_air_purifier: false,
-    has_fresh_air_system: false
+    has_fresh_air_system: false,
+    openingHours: DAYS_OF_WEEK.map(day => ({
+      day_of_week: day.value,
+      is_open: true,
+      open_time: '10:00',
+      close_time: '22:00'
+    }))
   });
 
   const [errors, setErrors] = useState({});
-  const [subcategories, setSubcategories] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Mock categories data
-  const categories = [
-    { id: 1, name: 'คาเฟ่' },
-    { id: 2, name: 'ร้านอาหาร' },
-    { id: 3, name: 'เครื่องดื่ม' },
-    { id: 4, name: 'ร้านขนม' },
-    { id: 5, name: 'บาร์' }
-  ];
+  // Address data from API
+  const [addressData, setAddressData] = useState([]);
+  const [selectedProvince, setSelectedProvince] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
+  const [selectedSubDistrict, setSelectedSubDistrict] = useState(null);
+  const [loadingAddress, setLoadingAddress] = useState(false);
+  
+  // Store types and cuisines from API (like PlaceRegistration.tsx)
+  const [storeTypes, setStoreTypes] = useState([]);
+  const [cuisineTypes, setCuisineTypes] = useState([]);
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [selectedCuisines, setSelectedCuisines] = useState([]);
+  const [showTypePopup, setShowTypePopup] = useState(false);
+  const [showCuisinePopup, setShowCuisinePopup] = useState(false);
 
-  const subcategoriesData = {
-    '1': [
-      { id: 101, name: 'กาแฟ & เบเกอรี่' },
-      { id: 102, name: 'คาเฟ่สไตล์มินิมอล' },
-      { id: 103, name: 'คาเฟ่สวน/ธรรมชาติ' }
-    ],
-    '2': [
-      { id: 201, name: 'ปิ้งย่าง & หมูกระทะ' },
-      { id: 202, name: 'อาหารญี่ปุ่น' },
-      { id: 203, name: 'อาหารทะเล' },
-      { id: 204, name: 'อาหารไทย' }
-    ],
-    '3': [
-      { id: 301, name: 'สมูทตี้ & น้ำผลไม้' },
-      { id: 302, name: 'ชาไข่มุก' },
-      { id: 303, name: 'น้ำปั่น' }
-    ]
+  // Fetch store types and cuisines on mount
+  useEffect(() => {
+    const fetchTypesAndCuisines = async () => {
+      try {
+        const [typesRes, cuisinesRes] = await Promise.all([
+          axios.get('https://api.arkaddee.com/api/store-types'),
+          axios.get('https://api.arkaddee.com/api/cuisines')
+        ]);
+        setStoreTypes(typesRes.data.data || []);
+        setCuisineTypes(cuisinesRes.data.data || []);
+      } catch (error) {
+        console.error('Error fetching types and cuisines:', error);
+      }
+    };
+    fetchTypesAndCuisines();
+  }, []);
+
+  // Load initial data if editing
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+      
+      // Load existing images
+      if (initialData.images && initialData.images.length > 0) {
+        const previews = initialData.images.map(img => {
+          if (img.startsWith('http')) {
+            return img;
+          } else if (img.startsWith('/uploads')) {
+            return `https://api.arkaddee.com${img}`;
+          }
+          return img;
+        });
+        setImagePreviews(previews);
+      }
+    }
+  }, [initialData]);
+
+  // Fetch provinces from API
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      try {
+        setLoadingAddress(true);
+        const response = await axios.get('https://api.arkaddee.com/api/addresses/provinces');
+        console.log('Provinces loaded:', response.data.length);
+        setAddressData(response.data);
+      } catch (error) {
+        console.error('Error fetching provinces:', error);
+        alert('ไม่สามารถโหลดข้อมูลที่อยู่ได้ กรุณาลองใหม่อีกครั้ง');
+      } finally {
+        setLoadingAddress(false);
+      }
+    };
+    fetchProvinces();
+  }, []);
+
+  // Get available districts based on selected province
+  const availableDistricts = selectedProvince?.amphure || [];
+  
+  // Get available subdistricts based on selected district
+  const availableSubDistricts = selectedDistrict?.tambon || [];
+
+  // Handle type selection
+  const selectType = (typeId) => {
+    if (selectedTypes.includes(typeId)) {
+      setSelectedTypes(selectedTypes.filter(id => id !== typeId));
+    } else {
+      setSelectedTypes([...selectedTypes, typeId]);
+    }
   };
 
-  const provinces = [
-    'กรุงเทพมหานคร',
-    'เชียงใหม่',
-    'ปทุมธานี',
-    'ภูเก็ต',
-    'ขอนแก่น',
-    'นครราชสีมา'
-  ];
-
-  // Handle category change and load subcategories
-  useEffect(() => {
-    if (formData.category) {
-      const categoryId = categories.find(c => c.name === formData.category)?.id;
-      setSubcategories(subcategoriesData[categoryId] || []);
+  // Handle cuisine selection
+  const selectCuisine = (cuisineId) => {
+    if (selectedCuisines.includes(cuisineId)) {
+      setSelectedCuisines(selectedCuisines.filter(id => id !== cuisineId));
+    } else {
+      setSelectedCuisines([...selectedCuisines, cuisineId]);
     }
-  }, [formData.category]);
+  };
+
+  // Get filtered cuisines based on selected types
+  const getFilteredCuisines = () => {
+    if (selectedTypes.length === 0) return [];
+    return cuisineTypes.filter(cuisine => 
+      selectedTypes.includes(cuisine.store_type_id)
+    );
+  };
+
+  // Remove type
+  const removeType = (typeId) => {
+    setSelectedTypes(selectedTypes.filter(id => id !== typeId));
+    // Also remove associated cuisines
+    const associatedCuisines = cuisineTypes
+      .filter(c => c.store_type_id === typeId)
+      .map(c => c.id);
+    setSelectedCuisines(selectedCuisines.filter(id => !associatedCuisines.includes(id)));
+  };
+
+  // Remove cuisine
+  const removeCuisine = (cuisineId) => {
+    setSelectedCuisines(selectedCuisines.filter(id => id !== cuisineId));
+  };
+
+  // Get selected type/cuisine objects
+  const selectedTypeObjects = storeTypes.filter(t => selectedTypes.includes(t.id));
+  const selectedCuisineObjects = cuisineTypes.filter(c => selectedCuisines.includes(c.id));
+
+  // Handle province selection
+  const handleProvinceChange = (e) => {
+    const provinceName = e.target.value;
+    const province = addressData.find(p => p.name_th === provinceName);
+    
+    setSelectedProvince(province);
+    setSelectedDistrict(null);
+    setSelectedSubDistrict(null);
+
+    setFormData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        province: provinceName,
+        district: '',
+        subdistrict: '',
+        postal_code: ''
+      }
+    }));
+  };
+
+  // Handle district selection
+  const handleDistrictChange = (e) => {
+    const districtName = e.target.value;
+    const district = availableDistricts.find(d => d.name_th === districtName);
+    
+    setSelectedDistrict(district);
+    setSelectedSubDistrict(null);
+
+    setFormData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        district: districtName,
+        subdistrict: '',
+        postal_code: ''
+      }
+    }));
+  };
+
+  // Handle subdistrict selection
+  const handleSubDistrictChange = (e) => {
+    const subDistrictName = e.target.value;
+    const subDistrict = availableSubDistricts.find(s => s.name_th === subDistrictName);
+    
+    setSelectedSubDistrict(subDistrict);
+
+    // Auto-fill postal code
+    const postalCode = subDistrict?.zip_code || '';
+
+    setFormData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        subdistrict: subDistrictName,
+        postal_code: postalCode
+      }
+    }));
+  };
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
+    if (name.startsWith('address.')) {
+      const addressField = name.split('.')[1];
       setFormData(prev => ({
         ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: type === 'checkbox' ? checked : value
+        address: {
+          ...prev.address,
+          [addressField]: value
+        }
+      }));
+    } else if (name.startsWith('location.')) {
+      const locationField = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        location: {
+          ...prev.location,
+          [locationField]: parseFloat(value) || 0
         }
       }));
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value
-      }));
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
+  };
 
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
+  };
+
+  const handleOpeningHourChange = (dayIndex, field, value) => {
+    setFormData(prev => {
+      const newHours = [...prev.openingHours];
+      newHours[dayIndex] = { ...newHours[dayIndex], [field]: value };
+      return { ...prev, openingHours: newHours };
+    });
   };
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    if (formData.images.length + files.length > 5) {
-      alert('สามารถอัปโหลดรูปภาพได้สูงสุด 5 รูป');
+    if (files.length === 0) return;
+
+    // Check total images
+    const totalImages = formData.images.length + files.length;
+    if (totalImages > 5) {
+      alert(`สามารถอัพโหลดได้สูงสุด 5 รูป (คุณมีรูปอยู่แล้ว ${formData.images.length} รูป)`);
       return;
     }
 
-    // Mock image URLs (in real app, upload to server)
-    const newImages = files.map((file, index) => ({
-      id: Date.now() + index,
-      url: URL.createObjectURL(file),
-      file: file
-    }));
+    // Check file size
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const oversized = files.filter(f => f.size > maxSize);
+    if (oversized.length > 0) {
+      alert('มีไฟล์ที่มีขนาดเกิน 5MB กรุณาเลือกไฟล์ใหม่');
+      return;
+    }
 
+    // Create previews
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...newImages]
+      images: [...prev.images, ...files]
     }));
+    
+    setImagePreviews(prev => [...prev, ...newPreviews]);
   };
 
-  const removeImage = (imageId) => {
+  const removeImage = (index) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter(img => img.id !== imageId)
+      images: prev.images.filter((_, i) => i !== index)
     }));
   };
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = 'กรุณากรอกชื่อร้านค้า';
-    if (!formData.description.trim()) newErrors.description = 'กรุณากรอกรายละเอียด';
-    if (!formData.price_range) newErrors.price_range = 'กรุณาเลือกช่วงราคา';
-    if (!formData.category) newErrors.category = 'กรุณาเลือกหมวดหมู่';
-    if (!formData.phone.trim()) newErrors.phone = 'กรุณากรอกเบอร์โทรศัพท์';
+    if (!formData.name.trim()) newErrors.name = 'กรุณากรอกชื่อร้าน';
+    if (!formData.phone.trim()) newErrors.phone = 'กรุณากรอกเบอร์โทร';
+    if (selectedTypes.length === 0) newErrors.category = 'กรุณาเลือกประเภทสถานที่';
     if (!formData.address.province) newErrors.province = 'กรุณาเลือกจังหวัด';
+    if (!formData.address.district) newErrors.district = 'กรุณาเลือกอำเภอ';
+    if (!formData.address.subdistrict) newErrors.subdistrict = 'กรุณาเลือกตำบล';
+    if (!formData.address.house_number.trim()) newErrors.house_number = 'กรุณากรอกบ้านเลขที่';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
+
+    if (!validateForm()) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+
+    setSubmitting(true);
+
+    // Pass types and cuisines to parent
+    const submitData = {
+      ...formData,
+      types: selectedTypes,
+      cuisines: selectedCuisines
+    };
+
+    try {
+      await onSubmit(submitData);
+    } catch (error) {
+      console.error('Submit error:', error);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Basic Information Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-          <span className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center mr-3 text-sm font-bold">
-            1
-          </span>
-          ข้อมูลพื้นฐาน
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      {/* Basic Information */}
+      <div className="card p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">ข้อมูลพื้นฐาน</h3>
+        
+        <div className="space-y-4">
           {/* Shop Name */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ชื่อสถานที่/ร้านค้า <span className="text-red-500">*</span>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              ชื่อร้าน <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2.5 border ${
-                errors.name ? 'border-red-300' : 'border-gray-300'
-              } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
-              placeholder="เช่น คาเฟ่ในสวนใบไม้"
+              className={`w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                errors.name ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="เช่น คาเฟ่ในสวน"
             />
-            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            {errors.name && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.name}</p>}
           </div>
 
           {/* Description */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              รายละเอียดร้านค้า <span className="text-red-500">*</span>
-            </label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleInputChange}
-              rows="4"
-              className={`w-full px-4 py-2.5 border ${
-                errors.description ? 'border-red-300' : 'border-gray-300'
-              } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
-              placeholder="อธิบายถึงบรรยากาศ อาหาร และจุดเด่นของร้าน"
+              rows="3"
+              className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none"
+              placeholder="บรรยากาศและจุดเด่นของร้าน..."
             />
-            {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
           </div>
 
-          {/* Price Range */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ช่วงราคา <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="price_range"
-              value={formData.price_range}
-              onChange={handleInputChange}
-              className={`w-full px-4 py-2.5 border ${
-                errors.price_range ? 'border-red-300' : 'border-gray-300'
-              } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
-            >
-              <option value="">เลือกช่วงราคา</option>
-              <option value="฿">฿ (ราคาประหยัด 1-100 บาท)</option>
-              <option value="฿฿">฿฿ (ราคาปานกลาง 100-300 บาท)</option>
-              <option value="฿฿฿">฿฿฿ (ราคาค่อนข้างแพง 300+ บาท)</option>
-            </select>
-            {errors.price_range && <p className="mt-1 text-sm text-red-600">{errors.price_range}</p>}
+          {/* Store Types */}
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ประเภทสถานที่ <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowTypePopup(!showTypePopup)}
+                  className={`w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-left ${
+                    errors.category ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  เลือกประเภทสถานที่
+                </button>
+                
+                {/* Selected Types Tags */}
+                {selectedTypeObjects.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedTypeObjects.map(type => (
+                      <span
+                        key={type.id}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-indigo-100 text-indigo-700"
+                      >
+                        {type.name}
+                        <button
+                          type="button"
+                          onClick={() => removeType(type.id)}
+                          className="ml-2 hover:text-indigo-900"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Type Dropdown */}
+                {showTypePopup && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {storeTypes.map(type => (
+                      <div
+                        key={type.id}
+                        onClick={() => selectType(type.id)}
+                        className={`px-4 py-2 cursor-pointer hover:bg-indigo-50 flex justify-between items-center ${
+                          selectedTypes.includes(type.id) ? 'bg-indigo-50' : ''
+                        }`}
+                      >
+                        <span>{type.name}</span>
+                        {selectedTypes.includes(type.id) && (
+                          <span className="text-indigo-600">✓</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {errors.category && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.category}</p>}
+            </div>
+          </div>
+
+          {/* Cuisines (only show if types selected) */}
+          {selectedTypes.length > 0 && getFilteredCuisines().length > 0 && (
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  รายละเอียดสถานที่
+                </label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowCuisinePopup(!showCuisinePopup)}
+                    className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-left"
+                  >
+                    เลือกรายละเอียดสถานที่
+                  </button>
+                  
+                  {/* Selected Cuisines Tags */}
+                  {selectedCuisineObjects.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {selectedCuisineObjects.map(cuisine => (
+                        <span
+                          key={cuisine.id}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-700"
+                        >
+                          {cuisine.name}
+                          <button
+                            type="button"
+                            onClick={() => removeCuisine(cuisine.id)}
+                            className="ml-2 hover:text-green-900"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Cuisine Dropdown */}
+                  {showCuisinePopup && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {getFilteredCuisines().map(cuisine => (
+                        <div
+                          key={cuisine.id}
+                          onClick={() => selectCuisine(cuisine.id)}
+                          className={`px-4 py-2 cursor-pointer hover:bg-green-50 flex justify-between items-center ${
+                            selectedCuisines.includes(cuisine.id) ? 'bg-green-50' : ''
+                          }`}
+                        >
+                          <span>{cuisine.name}</span>
+                          {selectedCuisines.includes(cuisine.id) && (
+                            <span className="text-green-600">✓</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Price */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ช่วงราคา</label>
+              <select
+                name="price_range"
+                value={formData.price_range}
+                onChange={handleInputChange}
+                className="w-full px-2 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+              >
+                <option value="">เลือก</option>
+                <option value="฿">฿ (ถูก)</option>
+                <option value="฿฿">฿฿ (ปานกลาง)</option>
+                <option value="฿฿฿">฿฿฿ (แพง)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ราคาเฉลี่ย</label>
+              <input
+                type="number"
+                name="average_price_per_person"
+                value={formData.average_price_per_person}
+                onChange={handleInputChange}
+                className="w-full px-2 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                placeholder="บาท"
+              />
+            </div>
           </div>
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              เบอร์โทรศัพท์ <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              เบอร์โทร <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
               name="phone"
               value={formData.phone}
               onChange={handleInputChange}
-              className={`w-full px-4 py-2.5 border ${
-                errors.phone ? 'border-red-300' : 'border-gray-300'
-              } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
+              className={`w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                errors.phone ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="0812345678"
             />
-            {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-          </div>
-
-          {/* Opening Hours */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              เวลาเปิด
-            </label>
-            <input
-              type="time"
-              name="open_time"
-              value={formData.open_time}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              เวลาปิด
-            </label>
-            <input
-              type="time"
-              name="close_time"
-              value={formData.close_time}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
+            {errors.phone && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.phone}</p>}
           </div>
         </div>
       </div>
 
-      {/* Category Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-          <span className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mr-3 text-sm font-bold">
-            2
-          </span>
-          หมวดหมู่
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              หมวดหมู่สถานที่ <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleInputChange}
-              className={`w-full px-4 py-2.5 border ${
-                errors.category ? 'border-red-300' : 'border-gray-300'
-              } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
-            >
-              <option value="">เลือกหมวดหมู่</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.name}>{cat.name}</option>
-              ))}
-            </select>
-            {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
+      {/* Address Information */}
+      <div className="card p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">ที่อยู่ร้านค้า</h3>
+        
+        {loadingAddress && (
+          <div className="text-center py-4 text-gray-500">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+            <p className="text-sm">กำลังโหลดข้อมูลที่อยู่...</p>
           </div>
+        )}
 
+        <div className="space-y-4">
+          {/* House Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              รายละเอียดสถานที่
-            </label>
-            <select
-              name="subcategory"
-              value={formData.subcategory}
-              onChange={handleInputChange}
-              disabled={!formData.category}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100"
-            >
-              <option value="">เลือกประเภทย่อย</option>
-              {subcategories.map(sub => (
-                <option key={sub.id} value={sub.name}>{sub.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Location Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-          <span className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mr-3 text-sm font-bold">
-            3
-          </span>
-          ที่อยู่และตำแหน่ง
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              บ้านเลขที่
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              บ้านเลขที่ <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               name="address.house_number"
               value={formData.address.house_number}
               onChange={handleInputChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="123/4"
+              className={`w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 ${
+                errors.house_number ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="123"
             />
+            {errors.house_number && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.house_number}</p>}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              หมู่ที่
-            </label>
-            <input
-              type="text"
-              name="address.village"
-              value={formData.address.village}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="5"
-            />
+          {/* Moo & Soi */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">หมู่ที่</label>
+              <input
+                type="text"
+                name="address.moo"
+                value={formData.address.moo}
+                onChange={handleInputChange}
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                placeholder="1"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ซอย</label>
+              <input
+                type="text"
+                name="address.soi"
+                value={formData.address.soi}
+                onChange={handleInputChange}
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                placeholder="สุขุมวิท 11"
+              />
+            </div>
           </div>
 
+          {/* Province */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ซอย
-            </label>
-            <input
-              type="text"
-              name="address.soi"
-              value={formData.address.soi}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="สุขุมวิท 50"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               จังหวัด <span className="text-red-500">*</span>
             </label>
             <select
-              name="address.province"
-              value={formData.address.province}
-              onChange={handleInputChange}
-              className={`w-full px-4 py-2.5 border ${
-                errors.province ? 'border-red-300' : 'border-gray-300'
-              } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
+              value={selectedProvince?.name_th || ''}
+              onChange={handleProvinceChange}
+              disabled={loadingAddress}
+              className={`w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 ${
+                errors.province ? 'border-red-500' : 'border-gray-300'
+              }`}
             >
               <option value="">เลือกจังหวัด</option>
-              {provinces.map(province => (
-                <option key={province} value={province}>{province}</option>
+              {addressData.map((province) => (
+                <option key={province.id} value={province.name_th}>
+                  {province.name_th}
+                </option>
               ))}
             </select>
-            {errors.province && <p className="mt-1 text-sm text-red-600">{errors.province}</p>}
+            {errors.province && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.province}</p>}
           </div>
 
+          {/* District */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              อำเภอ/เขต
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              อำเภอ/เขต <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={selectedDistrict?.name_th || ''}
+              onChange={handleDistrictChange}
+              disabled={!selectedProvince || loadingAddress}
+              className={`w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 ${
+                errors.district ? 'border-red-500' : 'border-gray-300'
+              }`}
+            >
+              <option value="">เลือกอำเภอ/เขต</option>
+              {availableDistricts.map((district) => (
+                <option key={district.id} value={district.name_th}>
+                  {district.name_th}
+                </option>
+              ))}
+            </select>
+            {errors.district && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.district}</p>}
+          </div>
+
+          {/* Subdistrict */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              ตำบล/แขวง <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={selectedSubDistrict?.name_th || ''}
+              onChange={handleSubDistrictChange}
+              disabled={!selectedDistrict || loadingAddress}
+              className={`w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 ${
+                errors.subdistrict ? 'border-red-500' : 'border-gray-300'
+              }`}
+            >
+              <option value="">เลือกตำบล/แขวง</option>
+              {availableSubDistricts.map((subdistrict) => (
+                <option key={subdistrict.id} value={subdistrict.name_th}>
+                  {subdistrict.name_th}
+                </option>
+              ))}
+            </select>
+            {errors.subdistrict && <p className="mt-1 text-xs sm:text-sm text-red-500">{errors.subdistrict}</p>}
+          </div>
+
+          {/* Postal Code (Auto-fill) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              รหัสไปรษณีย์ <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              name="address.district"
-              value={formData.address.district}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="คลองเตย"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ตำบล/แขวง
-            </label>
-            <input
-              type="text"
-              name="address.subdistrict"
-              value={formData.address.subdistrict}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="พระโขนง"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              รหัสไปรษณีย์
-            </label>
-            <input
-              type="text"
-              name="address.postal_code"
               value={formData.address.postal_code}
-              onChange={handleInputChange}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="10110"
-              maxLength="5"
+              readOnly
+              className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+              placeholder="จะถูกกรอกอัตโนมัติเมื่อเลือกตำบล"
             />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPinIcon className="w-5 h-5 inline mr-2" />
-              พิกัดที่ตั้ง (Google Maps)
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="number"
-                step="0.000001"
-                name="location.latitude"
-                value={formData.location.latitude}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Latitude"
-              />
-              <input
-                type="number"
-                step="0.000001"
-                name="location.longitude"
-                value={formData.location.longitude}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Longitude"
-              />
-            </div>
-            <p className="mt-2 text-sm text-gray-500">
-              💡 คลิกขวาบน Google Maps แล้วเลือก "คัดลอกพิกัด" เพื่อนำมาใส่
+            <p className="mt-1 text-xs text-gray-500">
+              ✨ รหัสไปรษณีย์จะถูกกรอกอัตโนมัติเมื่อคุณเลือกตำบล
             </p>
           </div>
         </div>
       </div>
 
-      {/* Images Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-          <span className="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center mr-3 text-sm font-bold">
-            4
-          </span>
-          รูปภาพร้านค้า (สูงสุด 5 รูป)
-        </h3>
-
+      {/* Location */}
+      <div className="card p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">พิกัดที่ตั้ง</h3>
+        
         <div className="space-y-4">
-          {/* Image Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {formData.images.map((image) => (
-              <div key={image.id} className="relative group aspect-square">
+          {/* Google Maps Link */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Google Maps Link (แนะนำ)
+            </label>
+            <input
+              type="text"
+              placeholder="วาง Google Maps link ที่นี่ เช่น https://maps.app.goo.gl/xxx หรือ https://www.google.com/maps/@13.7563,100.5018,17z"
+              className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              onPaste={(e) => {
+                const link = e.clipboardData.getData('text');
+                
+                // Extract coordinates from various Google Maps formats
+                let lat, lng;
+                
+                // Format 1: @13.7563,100.5018
+                const match1 = link.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+                if (match1) {
+                  lat = parseFloat(match1[1]);
+                  lng = parseFloat(match1[2]);
+                }
+                
+                // Format 2: place/xxx/@13.7563,100.5018
+                const match2 = link.match(/place\/[^\/]+\/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+                if (match2) {
+                  lat = parseFloat(match2[1]);
+                  lng = parseFloat(match2[2]);
+                }
+                
+                // Format 3: q=13.7563,100.5018
+                const match3 = link.match(/q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+                if (match3) {
+                  lat = parseFloat(match3[1]);
+                  lng = parseFloat(match3[2]);
+                }
+                
+                if (lat && lng) {
+                  setFormData(prev => ({
+                    ...prev,
+                    location: { latitude: lat, longitude: lng }
+                  }));
+                  alert(`✅ ดึงพิกัดสำเร็จ!\nละติจูด: ${lat}\nลองจิจูด: ${lng}`);
+                } else {
+                  alert('❌ ไม่พบพิกัดใน link นี้\nกรุณาตรวจสอบ link อีกครั้ง');
+                }
+              }}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              💡 วาง Google Maps link เพื่อดึงพิกัดอัตโนมัติ หรือกรอกละติจูด/ลองจิจูดด้านล่าง
+            </p>
+          </div>
+
+          {/* Manual Coordinates */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ละติจูด</label>
+              <input
+                type="number"
+                name="location.latitude"
+                value={formData.location.latitude}
+                onChange={handleInputChange}
+                step="0.000001"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">ลองจิจูด</label>
+              <input
+                type="number"
+                name="location.longitude"
+                value={formData.location.longitude}
+                onChange={handleInputChange}
+                step="0.000001"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          {/* Preview Link */}
+          <div className="bg-blue-50 rounded-lg p-3 text-sm">
+            <p className="text-blue-900 font-medium mb-1">🗺️ พิกัดปัจจุบัน:</p>
+            <a
+              href={`https://www.google.com/maps/@${formData.location.latitude},${formData.location.longitude},17z`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline break-all"
+            >
+              {formData.location.latitude.toFixed(6)}, {formData.location.longitude.toFixed(6)}
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Opening Hours */}
+      <div className="card p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">เวลาเปิด-ปิด</h3>
+        
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">วัน</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">เวลาเปิด</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">เวลาปิด</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">เปิดทำการ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formData.openingHours.map((hour, idx) => {
+                const day = DAYS_OF_WEEK.find(d => d.value === hour.day_of_week);
+                return (
+                  <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900">{day.label}</td>
+                    
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="time"
+                        value={hour.open_time}
+                        onChange={(e) => handleOpeningHourChange(idx, 'open_time', e.target.value)}
+                        disabled={!hour.is_open}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-400 text-sm"
+                      />
+                    </td>
+                    
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="time"
+                        value={hour.close_time}
+                        onChange={(e) => handleOpeningHourChange(idx, 'close_time', e.target.value)}
+                        disabled={!hour.is_open}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-400 text-sm"
+                      />
+                    </td>
+                    
+                    <td className="px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={hour.is_open}
+                        onChange={(e) => handleOpeningHourChange(idx, 'is_open', e.target.checked)}
+                        className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="block md:hidden space-y-3">
+          {formData.openingHours.map((hour, idx) => {
+            const day = DAYS_OF_WEEK.find(d => d.value === hour.day_of_week);
+            return (
+              <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm font-semibold text-gray-900">{day.label}</span>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <span className="text-xs text-gray-600">เปิดทำการ</span>
+                    <input
+                      type="checkbox"
+                      checked={hour.is_open}
+                      onChange={(e) => handleOpeningHourChange(idx, 'is_open', e.target.checked)}
+                      className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    />
+                  </label>
+                </div>
+                
+                {hour.is_open && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">เวลาเปิด</label>
+                      <input
+                        type="time"
+                        value={hour.open_time}
+                        onChange={(e) => handleOpeningHourChange(idx, 'open_time', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">เวลาปิด</label>
+                      <input
+                        type="time"
+                        value={hour.close_time}
+                        onChange={(e) => handleOpeningHourChange(idx, 'close_time', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Images */}
+      <div className="card p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">รูปภาพร้านค้า</h3>
+        
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {/* Preview Images */}
+            {imagePreviews.map((preview, index) => (
+              <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
                 <img
-                  src={image.url}
-                  alt="Shop"
-                  className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
+                  src={preview}
+                  alt={`Preview ${index + 1}`}
+                  className="w-full h-full object-cover"
                 />
                 <button
                   type="button"
-                  onClick={() => removeImage(image.id)}
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => removeImage(index)}
+                  className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
                 >
                   <XMarkIcon className="w-4 h-4" />
                 </button>
@@ -498,75 +940,77 @@ const ShopRegistrationForm = ({ initialData = null, onSubmit, onCancel }) => {
             ))}
 
             {/* Upload Button */}
-            {formData.images.length < 5 && (
-              <label className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-colors">
-                <PhotoIcon className="w-8 h-8 text-gray-400 mb-2" />
-                <span className="text-sm text-gray-600">เพิ่มรูปภาพ</span>
+            {imagePreviews.length < 5 && (
+              <div>
                 <input
                   type="file"
-                  accept="image/*"
+                  id="imageUpload"
                   multiple
+                  accept="image/*"
                   onChange={handleImageUpload}
                   className="hidden"
                 />
-              </label>
+                <label
+                  htmlFor="imageUpload"
+                  className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-indigo-500 transition-colors flex flex-col items-center justify-center text-gray-500 hover:text-indigo-600 cursor-pointer"
+                >
+                  <PhotoIcon className="w-8 h-8 mb-2" />
+                  <span className="text-sm font-medium">อัปโหลด</span>
+                </label>
+              </div>
             )}
           </div>
+
+          <p className="text-xs text-gray-500">
+            * อัปโหลดได้สูงสุด 5 รูป (รูปละไม่เกิน 5MB)
+          </p>
         </div>
       </div>
 
-      {/* Equipment Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-          <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mr-3 text-sm font-bold">
-            5
-          </span>
-          อุปกรณ์ฟอกอากาศ
-        </h3>
-
-        <div className="space-y-4">
-          <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+      {/* Equipment */}
+      <div className="card p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">อุปกรณ์</h3>
+        
+        <div className="space-y-3">
+          <label className="flex items-center space-x-3 cursor-pointer">
             <input
               type="checkbox"
               name="has_air_purifier"
               checked={formData.has_air_purifier}
-              onChange={handleInputChange}
-              className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
+              onChange={handleCheckboxChange}
+              className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
             />
-            <span className="ml-3 text-sm font-medium text-gray-900">
-              ใช้เครื่องฟอกอากาศ
-            </span>
+            <span className="text-sm sm:text-base text-gray-700">มีเครื่องฟอกอากาศ</span>
           </label>
 
-          <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+          <label className="flex items-center space-x-3 cursor-pointer">
             <input
               type="checkbox"
               name="has_fresh_air_system"
               checked={formData.has_fresh_air_system}
-              onChange={handleInputChange}
-              className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
+              onChange={handleCheckboxChange}
+              className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
             />
-            <span className="ml-3 text-sm font-medium text-gray-900">
-              ใช้เครื่องเติมอากาศใหม่
-            </span>
+            <span className="text-sm sm:text-base text-gray-700">มีระบบระบายอากาศสด</span>
           </label>
         </div>
       </div>
 
-      {/* Form Actions */}
-      <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+      {/* Submit Buttons */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-end">
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+          className="px-6 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors order-2 sm:order-1"
         >
           ยกเลิก
         </button>
         <button
           type="submit"
-          className="px-8 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm hover:shadow-md"
+          disabled={submitting}
+          className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
         >
-          บันทึกข้อมูล
+          {submitting ? 'กำลังบันทึก...' : isEditMode ? 'บันทึกการแก้ไข' : 'ลงทะเบียนร้านค้า'}
         </button>
       </div>
     </form>

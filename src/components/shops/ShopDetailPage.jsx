@@ -1,83 +1,90 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { 
+import {
   MapPinIcon,
   PhoneIcon,
   ClockIcon,
-  CurrencyDollarIcon,
   PencilIcon,
   TrashIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  ArrowLeftIcon,
+  StarIcon,
+  UserIcon,
+  CalendarIcon,
+  CloudIcon,
+  ComputerDesktopIcon
 } from '@heroicons/react/24/outline';
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import api from '../../services/api';
+import DeviceBindingModal from './DeviceBindingModal';
 
 const ShopDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDeviceModal, setShowDeviceModal] = useState(false);
 
   useEffect(() => {
-    // Fetch shop data
     const fetchShop = async () => {
       setLoading(true);
-      
-      setTimeout(() => {
-        const mockShops = [
-          {
-            id: 1,
-            name: "คาเฟ่ในสวนใบไม้",
-            description: "คาเฟ่บรรยากาศธรรมชาติ ให้บริการเครื่องดื่มและของหวานโฮมเมด พร้อมมุมถ่ายรูปสวยๆ",
-            price_range: "฿฿",
-            open_time: "08:00",
-            close_time: "18:00",
-            category: "คาเฟ่",
-            subcategory: "กาแฟ & เบเกอรี่",
-            location: {
-              latitude: 13.7563,
-              longitude: 100.5018
-            },
-            address: {
-              house_number: "123/4",
-              village: "5",
-              soi: "สุขุมวิท 50",
-              province: "กรุงเทพมหานคร",
-              district: "คลองเตย",
-              subdistrict: "พระโขนง",
-              postal_code: "10110"
-            },
-            phone: "0812345678",
-            images: [
-              "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
-              "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
-            ],
-            has_air_purifier: true,
-            has_fresh_air_system: false,
-            status: "published"
-          }
-        ];
-
-        const foundShop = mockShops.find(s => s.id === parseInt(id));
-        setShop(foundShop);
+      try {
+        const data = await api.shop.getById(id);
+        console.log('Fetched shop data:', data);
+        setShop(data);
+      } catch (error) {
+        console.error('Error fetching shop:', error);
+      } finally {
         setLoading(false);
-      }, 500);
+      }
     };
 
     fetchShop();
   }, [id]);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm('คุณต้องการลบร้านค้านี้หรือไม่?')) {
-      console.log('Deleting shop:', id);
-      alert('ลบร้านค้าสำเร็จ');
-      navigate('/shops');
+      try {
+        await api.shop.delete(id);
+        alert('ลบร้านค้าสำเร็จ');
+        navigate('/shops');
+      } catch (error) {
+        console.error('Error deleting shop:', error);
+        alert('เกิดข้อผิดพลาดในการลบร้านค้า');
+      }
     }
+  };
+
+  const getDayName = (dayNumber) => {
+    const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+    return days[dayNumber];
+  };
+
+  const getAirQualityBadge = (pm25) => {
+    if (!pm25 && pm25 !== 0) return { label: 'ไม่มีข้อมูล', className: 'bg-gray-100 text-gray-600' };
+    if (pm25 <= 25) return { label: 'ดีมาก', className: 'bg-green-100 text-green-700' };
+    if (pm25 <= 50) return { label: 'ดี', className: 'bg-blue-100 text-blue-700' };
+    if (pm25 <= 100) return { label: 'ปานกลาง', className: 'bg-yellow-100 text-yellow-700' };
+    return { label: 'แย่', className: 'bg-red-100 text-red-700' };
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('th-TH', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600">กำลังโหลด...</p>
+        </div>
       </div>
     );
   }
@@ -85,10 +92,10 @@ const ShopDetailPage = () => {
   if (!shop) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">ไม่พบข้อมูลร้านค้า</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">ไม่พบข้อมูลร้านค้า</h2>
         <button
           onClick={() => navigate('/shops')}
-          className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg"
+          className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
         >
           กลับไปหน้ารายการ
         </button>
@@ -96,185 +103,354 @@ const ShopDetailPage = () => {
     );
   }
 
-  const getStatusBadge = (status) => {
-    const config = {
-      published: { label: 'เผยแพร่แล้ว', className: 'bg-green-100 text-green-800' },
-      pending: { label: 'รออนุมัติ', className: 'bg-amber-100 text-amber-800' },
-      rejected: { label: 'ปฏิเสธ', className: 'bg-red-100 text-red-800' }
-    };
-    const { label, className } = config[status] || config.pending;
-    return <span className={`px-3 py-1 text-xs font-medium rounded-full ${className}`}>{label}</span>;
-  };
+  const airQuality = getAirQualityBadge(shop.environmentalMetrics?.pm25);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{shop.name}</h1>
-          <p className="text-sm text-gray-600 mt-1">รายละเอียดร้านค้า</p>
-        </div>
-        <div className="flex space-x-3">
-          <Link
-            to={`/shops/${id}/edit`}
-            className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            <PencilIcon className="w-4 h-4" />
-            <span>แก้ไข</span>
-          </Link>
-          <button
-            onClick={handleDelete}
-            className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <TrashIcon className="w-4 h-4" />
-            <span>ลบ</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Images */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-          {shop.images.map((image, index) => (
-            <div key={index} className="aspect-video rounded-lg overflow-hidden">
-              <img 
-                src={image} 
-                alt={`${shop.name} ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Info */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">ข้อมูลทั่วไป</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-600">รายละเอียด</label>
-                <p className="mt-1 text-gray-900">{shop.description}</p>
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
+      {/* Header - Add Card Border */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-start space-x-3">
+            <button
+              onClick={() => navigate('/shops')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors lg:hidden mt-1"
+            >
+              <ArrowLeftIcon className="w-5 h-5 text-gray-600" />
+            </button>
+            <div className="flex-1">
+              <div className="flex items-center space-x-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{shop.name}</h1>
+                {shop.types && shop.types.length > 0 && (
+                  <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                    {shop.types[0].name}
+                  </span>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600">หมวดหมู่</label>
-                  <p className="mt-1 text-gray-900">{shop.category}</p>
+              <div className="flex items-center space-x-3 mt-2">
+                <div className="flex items-center">
+                  <StarIconSolid className="w-5 h-5 text-yellow-400" />
+                  <span className="ml-1 text-sm font-medium text-gray-900">{shop.rating}</span>
+                  <span className="ml-1 text-sm text-gray-500">
+                    ({shop.reviewSummary?.review_count || shop.review_count || 0} รีวิว)
+                  </span>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">ประเภท</label>
-                  <p className="mt-1 text-gray-900">{shop.subcategory}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-600 flex items-center">
-                    <CurrencyDollarIcon className="w-4 h-4 mr-1" />
-                    ช่วงราคา
-                  </label>
-                  <p className="mt-1 text-gray-900 font-medium">{shop.price_range}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600 flex items-center">
-                    <ClockIcon className="w-4 h-4 mr-1" />
-                    เวลาเปิด
-                  </label>
-                  <p className="mt-1 text-gray-900">{shop.open_time}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600 flex items-center">
-                    <ClockIcon className="w-4 h-4 mr-1" />
-                    เวลาปิด
-                  </label>
-                  <p className="mt-1 text-gray-900">{shop.close_time}</p>
-                </div>
+                <span className="text-sm text-gray-600">{shop.price_range}</span>
+                {shop.average_price_per_person && (
+                  <span className="text-sm text-gray-600">฿{shop.average_price_per_person}/คน</span>
+                )}
               </div>
             </div>
           </div>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            <Link
+              to={`/shops/${id}/edit`}
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <PencilIcon className="w-4 h-4" />
+              <span>แก้ไข</span>
+            </Link>
+            
+            <button
+              onClick={() => setShowDeviceModal(true)}
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <ComputerDesktopIcon className="w-4 h-4" />
+              <span>จัดการอุปกรณ์</span>
+            </button>
+            
+            <button
+              onClick={handleDelete}
+              className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+            >
+              <TrashIcon className="w-4 h-4" />
+              <span>ลบ</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
-          {/* Address */}
+      {/* Images Gallery */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 p-4 sm:p-6">
+          {shop.images && shop.images.length > 0 ? (
+            shop.images.map((image, index) => (
+              <div key={index} className="aspect-square rounded-lg overflow-hidden">
+                <img
+                  src={`https://api.arkaddee.com${image}`}
+                  alt={`${shop.name} ${index + 1}`}
+                  className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                  onError={(e) => {
+                    e.target.src = 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400';
+                  }}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
+              <p className="text-sm text-gray-500">ไม่มีรูปภาพ</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Main Content - Left Side */}
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          
+          {/* รายละเอียด */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <MapPinIcon className="w-5 h-5 mr-2 text-indigo-600" />
+            <h3 className="text-lg font-bold text-gray-900 mb-4">รายละเอียด</h3>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+              {shop.description || 'ไม่มีข้อมูล'}
+            </p>
+          </div>
+
+          {/* ที่อยู่ */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+              <MapPinIcon className="w-5 h-5 mr-2 text-gray-700" />
               ที่อยู่
             </h3>
-            <div className="space-y-2">
-              <p className="text-gray-900">
-                {shop.address.house_number} 
-                {shop.address.village && ` หมู่ ${shop.address.village}`}
-                {shop.address.soi && ` ซอย${shop.address.soi}`}
-              </p>
-              <p className="text-gray-900">
-                {shop.address.subdistrict} {shop.address.district}
-              </p>
-              <p className="text-gray-900">
-                {shop.address.province} {shop.address.postal_code}
-              </p>
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-gray-600">
-                  <PhoneIcon className="w-4 h-4 inline mr-2" />
-                  {shop.phone}
-                </p>
-              </div>
+            <div className="space-y-3">
+              <p className="text-gray-900">{shop.address}</p>
+              {shop.district && (
+                <p className="text-gray-600 text-sm">{shop.district}</p>
+              )}
+              
+              {shop.phone_number && (
+                <div className="flex items-center space-x-2 pt-2">
+                  <PhoneIcon className="w-4 h-4 text-gray-600" />
+                  <a href={`tel:${shop.phone_number}`} className="text-gray-900 hover:text-indigo-600">
+                    {shop.phone_number}
+                  </a>
+                </div>
+              )}
+
+              {/* พิกัดที่ตั้ง */}
+              {shop.latitude && shop.longitude && (
+                <div className="pt-3 border-t">
+                  <div className="text-sm space-y-1 mb-3">
+                    <p className="text-gray-600">📌 Lat: <span className="text-gray-900">{shop.latitude}</span></p>
+                    <p className="text-gray-600 ml-4">Long: <span className="text-gray-900">{shop.longitude}</span></p>
+                  </div>
+                  <a
+                    href={`https://www.google.com/maps?q=${shop.latitude},${shop.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <MapPinIcon className="w-4 h-4" />
+                    <span>เปิดใน Google Maps</span>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* เวลาทำการ */}
+          {shop.openingHours && shop.openingHours.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <CalendarIcon className="w-5 h-5 mr-2 text-gray-700" />
+                เวลาทำการ
+              </h3>
+              <div className="space-y-0 divide-y divide-gray-100">
+                {shop.openingHours.map((hour, index) => (
+                  <div key={index} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                    <span className="text-gray-700 font-medium">
+                      {getDayName(hour.day_of_week)}
+                    </span>
+                    {hour.is_open ? (
+                      <span className="text-gray-900">
+                        {hour.open_time?.substring(0, 5)} - {hour.close_time?.substring(0, 5)}
+                      </span>
+                    ) : (
+                      <span className="text-red-600 font-medium">ปิด</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* รีวิวจากลูกค้า */}
+          {shop.reviews && shop.reviews.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <StarIcon className="w-5 h-5 mr-2 text-gray-700" />
+                รีวิวจากลูกค้า ({shop.reviews.length})
+              </h3>
+              <div className="space-y-4">
+                {shop.reviews.map((review) => (
+                  <div key={review.review_id} className="border-b border-gray-100 last:border-0 pb-4 last:pb-0">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <UserIcon className="w-5 h-5 text-gray-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <StarIconSolid
+                                key={i}
+                                className={`w-4 h-4 ${
+                                  i < parseFloat(review.rating) ? 'text-yellow-400' : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm text-gray-500">{formatDate(review.created_at)}</span>
+                        </div>
+                        {review.review_text && (
+                          <p className="text-gray-700 text-sm leading-relaxed">{review.review_text}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Status */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">สถานะ</h3>
-            {getStatusBadge(shop.status)}
-          </div>
+        {/* Sidebar - Right Side */}
+        <div className="space-y-4 sm:space-y-6">
+          
+          {/* คุณภาพอากาศ */}
+          {shop.environmentalMetrics && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <CloudIcon className="w-5 h-5 mr-2 text-gray-700" />
+                คุณภาพอากาศ
+              </h3>
+              <div className="space-y-4">
+                {/* PM2.5 */}
+                {shop.environmentalMetrics.pm25 !== null && shop.environmentalMetrics.pm25 !== undefined && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">PM2.5</span>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${airQuality.className}`}>
+                        {airQuality.label}
+                      </span>
+                    </div>
+                    <p className="text-3xl font-bold text-gray-900">{shop.environmentalMetrics.pm25}</p>
+                    <p className="text-xs text-gray-500 mt-1">µg/m³</p>
+                  </div>
+                )}
 
-          {/* Equipment */}
+                {/* อุณหภูมิ */}
+                {shop.environmentalMetrics.temperature && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <span className="text-sm text-gray-600 block mb-1">อุณหภูมิ</span>
+                    <p className="text-2xl font-bold text-gray-900">{shop.environmentalMetrics.temperature}°C</p>
+                  </div>
+                )}
+
+                {/* ความชื้น */}
+                {shop.environmentalMetrics.humidity && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <span className="text-sm text-gray-600 block mb-1">ความชื้น</span>
+                    <p className="text-2xl font-bold text-gray-900">{shop.environmentalMetrics.humidity}%</p>
+                  </div>
+                )}
+
+                {/* CO₂ */}
+                {shop.environmentalMetrics.co2 && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <span className="text-sm text-gray-600 block mb-1">CO₂</span>
+                    <p className="text-2xl font-bold text-gray-900">{shop.environmentalMetrics.co2}</p>
+                    <p className="text-xs text-gray-500 mt-1">ppm</p>
+                  </div>
+                )}
+
+                {/* TVOC */}
+                {shop.environmentalMetrics.tvoc && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <span className="text-sm text-gray-600 block mb-1">TVOC</span>
+                    <p className="text-2xl font-bold text-gray-900">{shop.environmentalMetrics.tvoc}</p>
+                    <p className="text-xs text-gray-500 mt-1">mg/m³</p>
+                  </div>
+                )}
+
+                {/* วันที่อัพเดท */}
+                {shop.environmentalMetrics.created_at && (
+                  <p className="text-xs text-gray-500 pt-3 border-t border-gray-100">
+                    อัพเดทล่าสุด: {formatDate(shop.environmentalMetrics.created_at)}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* อุปกรณ์ */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">อุปกรณ์</h3>
-            <div className="space-y-2">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">อุปกรณ์</h3>
+            <div className="space-y-3">
               <div className="flex items-center">
                 {shop.has_air_purifier ? (
-                  <CheckCircleIcon className="w-5 h-5 text-green-600 mr-2" />
+                  <CheckCircleIcon className="w-5 h-5 text-green-600 mr-2 flex-shrink-0" />
                 ) : (
-                  <XCircleIcon className="w-5 h-5 text-gray-400 mr-2" />
+                  <XCircleIcon className="w-5 h-5 text-gray-300 mr-2 flex-shrink-0" />
                 )}
-                <span className={shop.has_air_purifier ? 'text-gray-900' : 'text-gray-400'}>
+                <span className={`text-sm ${shop.has_air_purifier ? 'text-gray-900' : 'text-gray-400'}`}>
                   เครื่องฟอกอากาศ
                 </span>
               </div>
               <div className="flex items-center">
-                {shop.has_fresh_air_system ? (
-                  <CheckCircleIcon className="w-5 h-5 text-green-600 mr-2" />
+                {shop.has_air_ventilator ? (
+                  <CheckCircleIcon className="w-5 h-5 text-green-600 mr-2 flex-shrink-0" />
                 ) : (
-                  <XCircleIcon className="w-5 h-5 text-gray-400 mr-2" />
+                  <XCircleIcon className="w-5 h-5 text-gray-300 mr-2 flex-shrink-0" />
                 )}
-                <span className={shop.has_fresh_air_system ? 'text-gray-900' : 'text-gray-400'}>
-                  เครื่องเติมอากาศใหม่
+                <span className={`text-sm ${shop.has_air_ventilator ? 'text-gray-900' : 'text-gray-400'}`}>
+                  เครื่องระบายอากาศ
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Location */}
+          {/* เวลาเปิด-ปิด */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">พิกัดที่ตั้ง</h3>
-            <div className="space-y-1 text-sm text-gray-600">
-              <p>Lat: {shop.location.latitude}</p>
-              <p>Long: {shop.location.longitude}</p>
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+              <ClockIcon className="w-5 h-5 mr-2 text-gray-700" />
+              เวลาเปิด-ปิด
+            </h3>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">เปิด:</span>
+                <span className="font-medium text-gray-900">{shop.open_time?.substring(0, 5) || '-'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">ปิด:</span>
+                <span className="font-medium text-gray-900">{shop.close_time?.substring(0, 5) || '-'}</span>
+              </div>
             </div>
-            <a
-              href={`https://www.google.com/maps?q=${shop.location.latitude},${shop.location.longitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors text-sm"
-            >
-              เปิดใน Google Maps
-            </a>
           </div>
+
         </div>
       </div>
+
+      {/* Device Binding Modal */}
+      {showDeviceModal && (
+        <DeviceBindingModal
+          shopId={id}
+          shopName={shop.name}
+          onClose={() => setShowDeviceModal(false)}
+          onSuccess={() => {
+            // Refresh shop data to show updated devices
+            const fetchShop = async () => {
+              try {
+                const data = await api.shop.getById(id);
+                setShop(data);
+              } catch (error) {
+                console.error('Error refreshing shop:', error);
+              }
+            };
+            fetchShop();
+          }}
+        />
+      )}
     </div>
   );
 };

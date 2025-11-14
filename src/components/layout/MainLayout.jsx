@@ -4,40 +4,41 @@ import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 
 const MainLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      {/* Sidebar - Always visible on desktop, drawer on mobile */}
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
-        sidebarOpen ? 'lg:ml-64' : 'ml-0'
-      }`}>
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Navbar */}
         <Navbar 
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)} 
+          onMenuClick={() => setSidebarOpen(true)}
           sidebarOpen={sidebarOpen}
         />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
-          <div className="max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
             <Outlet />
           </div>
         </main>
 
         {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 py-4 px-6">
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
+        <footer className="bg-white border-t border-gray-200 py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <p className="text-xs text-center text-gray-500">
               © 2025 บริษัท วินเซนต์ ออโตเมชั่น จำกัด. สงวนลิขสิทธิ์.
             </p>
-            <div className="mt-1 space-x-3 text-xs text-gray-500">
-              <a href="#" className="hover:text-indigo-600 transition-colors">นโยบายความเป็นส่วนตัว</a>
+            <div className="flex justify-center space-x-4 mt-2 text-xs text-gray-500">
+              <a href="#" className="hover:text-indigo-600">นโยบายความเป็นส่วนตัว</a>
               <span>|</span>
-              <a href="#" className="hover:text-indigo-600 transition-colors">ข้อกำหนดการใช้งาน</a>
+              <a href="#" className="hover:text-indigo-600">ข้อกำหนดการใช้งาน</a>
             </div>
           </div>
         </footer>
