@@ -14,6 +14,8 @@ const DeviceBindingModal = ({ shopId, shopName, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(true);
   const [binding, setBinding] = useState(null);
   const [unbinding, setUnbinding] = useState(null);
+  const [ccdc, setCcdc] = useState(false);
+  const [updatingCCDC, setUpdatingCCDC] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -22,16 +24,36 @@ const DeviceBindingModal = ({ shopId, shopName, onClose, onSuccess }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch all devices
-      const allDevicesResponse = await api.device.getAll();
-      const allDevices = allDevicesResponse.data || allDevicesResponse || [];
-      
-      // Fetch bound devices for this shop
-      const boundResponse = await api.shop.getDevices(shopId);
-      const bound = boundResponse.data || boundResponse || [];
-      
+      // ✅ ดึงอุปกรณ์ทั้งหมด
+      let allDevices = [];
+      try {
+        const allDevicesResponse = await api.deviceStore.getAll();
+        console.log('All Devices Response:', allDevicesResponse);
+        allDevices = allDevicesResponse.data || allDevicesResponse || [];
+      } catch (error) {
+        console.warn('Could not fetch all devices:', error);
+        allDevices = [];
+      }
+
+      // ✅ ดึงอุปกรณ์ที่ผูกกับร้านนี้
+      let bound = [];
+      try {
+        const boundResponse = await api.deviceStore.getShopDevices(shopId);
+        if (Array.isArray(boundResponse.data)) {
+          bound = boundResponse.data;
+        } else if (boundResponse.data && typeof boundResponse.data === 'object') {
+          bound = [boundResponse.data];  // ← Wrap single object
+        }
+
+      } catch (error) {
+        console.warn('Could not fetch bound devices:', error);
+        bound = [];
+      }
+      console.log('Bound Devices:', bound);
       setDevices(allDevices);
       setBoundDevices(bound);
+      console.log('CCDC Status:', allDevices[0]);
+      setCcdc(bound[0].ccdc); // Reset CCDC when fetching new data
     } catch (error) {
       console.error('Error fetching devices:', error);
       alert('ไม่สามารถโหลดข้อมูลอุปกรณ์ได้');
@@ -40,10 +62,11 @@ const DeviceBindingModal = ({ shopId, shopName, onClose, onSuccess }) => {
     }
   };
 
-  const handleBind = async (deviceId) => {
+  const handleBind = async (deviceId, devicetype) => {
     setBinding(deviceId);
     try {
-      await api.shop.bindDevice(shopId, deviceId);
+      // ✅ ใช้ api.deviceStore.bindDevice แทน api.shop.bindDevice
+      await api.deviceStore.bindDevice(shopId, deviceId, devicetype);
       alert('✅ ผูกอุปกรณ์สำเร็จ!');
       fetchData();
       if (onSuccess) onSuccess();
@@ -57,10 +80,11 @@ const DeviceBindingModal = ({ shopId, shopName, onClose, onSuccess }) => {
 
   const handleUnbind = async (deviceId) => {
     if (!window.confirm('ต้องการยกเลิกการผูกอุปกรณ์นี้หรือไม่?')) return;
-    
+
     setUnbinding(deviceId);
     try {
-      await api.shop.unbindDevice(shopId, deviceId);
+      // ✅ ใช้ api.deviceStore.unbindDevice แทน api.shop.unbindDevice
+      await api.deviceStore.unbindDevice(shopId, deviceId);
       alert('✅ ยกเลิกการผูกสำเร็จ!');
       fetchData();
       if (onSuccess) onSuccess();
@@ -73,8 +97,23 @@ const DeviceBindingModal = ({ shopId, shopName, onClose, onSuccess }) => {
   };
 
   const isBound = (deviceId) => {
-    return boundDevices.some(d => d.id === deviceId);
-  };
+    return boundDevices.some(d => d.device_id === deviceId);
+  }
+
+  const handleCCDCToggle = async (newStatus) => {
+    setUpdatingCCDC(true);
+    try {
+      // ส่ง object { ccdc: true/false }
+      await api.deviceStore.updateDeviceStoreCCDC(shopId, { status: newStatus });
+      setCcdc(newStatus);
+      alert('✅ อัปเดต CCDC สำเร็จ!');
+    } catch (error) {
+      console.error('Error updating CCDC:', error);
+      alert('❌ ไม่สามารถอัปเดต CCDC ได้: ' + (error.message || ''));
+    } finally {
+      setUpdatingCCDC(false);
+    }
+  }
 
   const availableDevices = devices.filter(d => !isBound(d.id));
 
@@ -106,11 +145,34 @@ const DeviceBindingModal = ({ shopId, shopName, onClose, onSuccess }) => {
             <div className="space-y-6">
               {/* Bound Devices */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                  <CheckCircleIcon className="w-5 h-5 text-green-500 mr-2" />
-                  อุปกรณ์ที่ผูกอยู่ ({boundDevices.length})
-                </h3>
-                
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <CheckCircleIcon className="w-5 h-5 text-green-500 mr-2" />
+                    อุปกรณ์ที่ผูกอยู่ ({boundDevices.length})
+                  </h3>
+                  
+                  {/* CCDC Switch - Show only when devices are bound */}
+                  {boundDevices.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-gray-700">CCDC:</label>
+                      <button
+                        onClick={() => handleCCDCToggle(!ccdc)}
+                        disabled={updatingCCDC}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50 ${
+                          ccdc ? 'bg-green-500' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                            ccdc ? 'translate-x-4' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                      {updatingCCDC && <span className="text-xs text-gray-500">อัปเดต...</span>}
+                    </div>
+                  )}
+                </div>
+
                 {boundDevices.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <ComputerDesktopIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
@@ -126,13 +188,13 @@ const DeviceBindingModal = ({ shopId, shopName, onClose, onSuccess }) => {
                         <div className="flex items-center">
                           <ComputerDesktopIcon className="w-8 h-8 text-green-600 mr-3" />
                           <div>
-                            <p className="font-medium text-gray-900">{device.name || 'ไม่มีชื่อ'}</p>
-                            <p className="text-sm text-gray-600">{device.serial_number || '-'}</p>
+                            <p className="font-medium text-gray-900">{device.device_type + '  ' + device.id || 'ไม่มีชื่อ'}</p>
+                            <p className="text-sm text-gray-600">{device.device_type || '-'}</p>
                           </div>
                         </div>
-                        
+
                         <button
-                          onClick={() => handleUnbind(device.id)}
+                          onClick={() => handleUnbind(device.id , shopId )}
                           disabled={unbinding === device.id}
                           className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50"
                           title="ยกเลิกการผูก"
@@ -155,7 +217,7 @@ const DeviceBindingModal = ({ shopId, shopName, onClose, onSuccess }) => {
                   <PlusIcon className="w-5 h-5 text-gray-600 mr-2" />
                   อุปกรณ์ที่สามารถผูกได้ ({availableDevices.length})
                 </h3>
-                
+
                 {availableDevices.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 rounded-lg">
                     <ComputerDesktopIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
@@ -172,17 +234,17 @@ const DeviceBindingModal = ({ shopId, shopName, onClose, onSuccess }) => {
                         <div className="flex items-center">
                           <ComputerDesktopIcon className="w-8 h-8 text-gray-600 mr-3" />
                           <div>
-                            <p className="font-medium text-gray-900">{device.name || 'ไม่มีชื่อ'}</p>
+                            <p className="font-medium text-gray-900">{device.device_type + '  ' + device.device_id || 'ไม่มีชื่อ'}</p>
                             <p className="text-sm text-gray-600">{device.serial_number || '-'}</p>
                             {device.device_type && (
                               <p className="text-xs text-gray-500">{device.device_type}</p>
                             )}
                           </div>
                         </div>
-                        
+
                         <button
-                          onClick={() => handleBind(device.id)}
-                          disabled={binding === device.id}
+                          onClick={() => handleBind(device.device_id, device.device_type)}
+                          disabled={binding === device.device_id}
                           className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 text-sm"
                         >
                           {binding === device.id ? 'กำลังผูก...' : 'ผูก'}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import ShopRegistrationForm from './ShopRegistrationForm';
 import axios from 'axios';
+import { fr } from 'date-fns/locale';
 
 const ShopCreatePage = () => {
   const navigate = useNavigate();
@@ -14,55 +15,7 @@ const ShopCreatePage = () => {
     try {
       console.log('📝 Creating shop with data:', formData);
 
-      // Step 1: Upload images first and get URLs
-      let imageUrls = [];
-
-      if (formData.images && formData.images.length > 0) {
-        console.log(`📸 Uploading ${formData.images.length} images...`);
-
-        for (let i = 0; i < formData.images.length; i++) {
-          try {
-            console.log(`📤 Uploading image ${i + 1}/${formData.images.length}:`, formData.images[i].name);
-
-            const uploadFormData = new FormData();
-            uploadFormData.append('image', formData.images[i]);
-
-            const uploadResponse = await axios.post(
-              'https://api.arkaddee.com/api/upload/image',
-              uploadFormData,
-              {
-                headers: {
-                  'Content-Type': 'multipart/form-data'
-                }
-              }
-            );
-
-            console.log(`✅ Upload response ${i + 1}:`, uploadResponse.data);
-
-            const responseData = uploadResponse.data;
-
-            if (responseData.status !== 'success') {
-              throw new Error(`ไม่สามารถอัพโหลดรูปภาพที่ ${i + 1} ได้`);
-            }
-
-            const uploadResult = responseData.data;
-            const imageUrl = uploadResult.url || uploadResult.imageUrl || uploadResult.path;
-
-            if (!imageUrl) {
-              throw new Error(`ไม่พบ URL รูปภาพที่ ${i + 1} ใน response`);
-            }
-
-            imageUrls.push(imageUrl);
-            console.log(`✅ Image ${i + 1} uploaded, URL:`, imageUrl);
-
-          } catch (uploadError) {
-            console.error(`❌ Error uploading image ${i + 1}:`, uploadError);
-            throw new Error(`ไม่สามารถอัพโหลดรูปภาพที่ ${i + 1} ได้: ${uploadError.message}`);
-          }
-        }
-
-        console.log('✅ All images uploaded successfully:', imageUrls);
-      }
+     
 
       // Step 2: Prepare store data (following PlaceRegistration.tsx format)
       console.log('📋 Types and Cuisines:', {
@@ -70,12 +23,26 @@ const ShopCreatePage = () => {
         cuisines: formData.cuisines
       });
 
+      // Validate types and cuisines
+      const types = Array.isArray(formData.types) && formData.types.length > 0 
+        ? formData.types 
+        : [];
+      
+      const cuisines = Array.isArray(formData.cuisines) && formData.cuisines.length > 0 
+        ? formData.cuisines 
+        : [];
+
+      if (types.length === 0) {
+        console.warn('⚠️ No types selected');
+      }
+
+      console.log(formData);
       const storeData = {
         name: formData.name,
         description: formData.description,
         price_range: formData.price_range,
-        types: formData.types || [], // Array of type IDs from form
-        cuisines: formData.cuisines || [], // Array of cuisine IDs from form
+        types: types, // Validated array of type IDs
+        cuisines: cuisines, // Validated array of cuisine IDs
         latitude: formData.location.latitude,
         longitude: formData.location.longitude,
         address: {
@@ -88,16 +55,16 @@ const ShopCreatePage = () => {
           zipCode: formData.address.postal_code || '',
           mobile: formData.phone || ''
         },
-        images: imageUrls, // Array of uploaded image URLs
+        images: formData.images, // Array of image URLs
         hasAirPurifier: formData.has_air_purifier || false,
         hasAirVentilator: formData.has_fresh_air_system || false,
         openingHours: formData.openingHours // Array of 7 days with open/close times
       };
-
+      
       console.log('📤 Sending store data to API:', JSON.stringify(storeData, null, 2));
 
       // Step 3: Create store using fetch (like PlaceRegistration.tsx)
-      const response = await fetch('https://api.arkaddee.com/api/stores', {
+     const response = await fetch('https://api.arkaddee.com/api/stores', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +92,7 @@ const ShopCreatePage = () => {
       setTimeout(() => {
         window.location.reload();
       }, 100);
-
+      
     } catch (error) {
       console.error('❌ Error creating shop:', error);
       console.error('Error details:', {

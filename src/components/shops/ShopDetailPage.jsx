@@ -18,6 +18,8 @@ import {
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import api from '../../services/api';
 import DeviceBindingModal from './DeviceBindingModal';
+// API Base Configuration
+const API_BASE_URL_Image = import.meta.env.VITE_API_URL_IMAGE || 'http://localhost:3000/api';
 
 const ShopDetailPage = () => {
   const { id } = useParams();
@@ -59,6 +61,88 @@ const ShopDetailPage = () => {
   const getDayName = (dayNumber) => {
     const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
     return days[dayNumber];
+  };
+
+  // ✅ NEW: Parse address string into components
+  const parseAddress = (addressString) => {
+    if (!addressString || typeof addressString !== 'string') {
+      return null;
+    }
+
+    const components = {
+      house_number: '',
+      moo: '',
+      soi: '',
+      subdistrict: '',
+      district: '',
+      province: '',
+      postal_code: ''
+    };
+
+    // Split by comma and trim, filter out empty strings
+    const parts = addressString.split(',').map(p => p.trim()).filter(p => p !== '');
+
+    if (parts.length === 0) return null;
+
+    // Parse: "123/4, หมู่ 2, แม่ต้าน, ท่าสองยาง, ตาก, 63150"
+    // Strategy: Work backwards since postal code is usually last
+
+    // parts[0] = house number - always first
+    components.house_number = parts[0];
+
+    // Find postal code (5 digits at the end)
+    const lastPart = parts[parts.length - 1];
+    if (/^\d{5}$/.test(lastPart)) {
+      components.postal_code = lastPart;
+
+      // Province is second to last
+      if (parts.length >= 2) {
+        components.province = parts[parts.length - 2];
+      }
+
+      // District is third to last
+      if (parts.length >= 3) {
+        components.district = parts[parts.length - 3];
+      }
+
+      // Subdistrict is fourth to last
+      if (parts.length >= 4) {
+        components.subdistrict = parts[parts.length - 4];
+      }
+
+      // Handle moo and soi from remaining parts
+      if (parts.length >= 2) {
+        const middleParts = parts.slice(1, parts.length - 4);
+
+        for (const part of middleParts) {
+          if (part.includes('หมู่')) {
+            components.moo = part.replace(/หมู่/gi, '').trim();
+          } else if (!components.soi) {
+            components.soi = part;
+          }
+        }
+      }
+    } else {
+      // No postal code, parse what we have
+      if (parts.length >= 2 && parts[1].includes('หมู่')) {
+        components.moo = parts[1].replace(/หมู่/gi, '').trim();
+      } else if (parts.length >= 2) {
+        components.soi = parts[1];
+      }
+
+      if (parts.length >= 5) {
+        components.province = parts[4];
+        components.district = parts[3];
+        components.subdistrict = parts[2];
+      } else if (parts.length === 4) {
+        components.district = parts[3];
+        components.subdistrict = parts[2];
+      } else if (parts.length === 3) {
+        components.subdistrict = parts[2];
+      }
+    }
+
+    return components;
   };
 
   const getAirQualityBadge = (pm25) => {
@@ -149,7 +233,7 @@ const ShopDetailPage = () => {
               <PencilIcon className="w-4 h-4" />
               <span>แก้ไข</span>
             </Link>
-            
+
             <button
               onClick={() => setShowDeviceModal(true)}
               className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
@@ -157,7 +241,7 @@ const ShopDetailPage = () => {
               <ComputerDesktopIcon className="w-4 h-4" />
               <span>จัดการอุปกรณ์</span>
             </button>
-            
+
             <button
               onClick={handleDelete}
               className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
@@ -176,7 +260,7 @@ const ShopDetailPage = () => {
             shop.images.map((image, index) => (
               <div key={index} className="aspect-square rounded-lg overflow-hidden">
                 <img
-                  src={`https://api.arkaddee.com${image}`}
+                  src={`${API_BASE_URL_Image}${image}`}
                   alt={`${shop.name} ${index + 1}`}
                   className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                   onError={(e) => {
@@ -197,13 +281,70 @@ const ShopDetailPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Main Content - Left Side */}
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-          
+
           {/* รายละเอียด */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">รายละเอียด</h3>
             <p className="text-gray-700 leading-relaxed whitespace-pre-line">
               {shop.description || 'ไม่มีข้อมูล'}
             </p>
+          </div>
+
+          {/* ประเภทและราคา */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">ข้อมูลทั่วไป</h3>
+            <div className="space-y-4">
+              {/* ประเภทสถานที่ */}
+              {shop.types && shop.types.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">ประเภทสถานที่</p>
+                  <div className="flex flex-wrap gap-2">
+                    {shop.types.map((type, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium"
+                      >
+                        {type.name || type}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ประเภทอาหาร */}
+              {shop.cuisines && shop.cuisines.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">ประเภทอาหาร</p>
+                  <div className="flex flex-wrap gap-2">
+                    {shop.cuisines.map((cuisine, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
+                      >
+                        {cuisine.name || cuisine}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ช่วงราคา */}
+              {shop.price_range && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">ช่วงราคา</p>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl font-bold text-gray-900">
+                      {shop.price_range}
+                    </span>
+                    {shop.average_price_per_person && (
+                      <span className="text-sm text-gray-600">
+                        (~{shop.average_price_per_person} บาท/คน)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ที่อยู่ */}
@@ -213,26 +354,100 @@ const ShopDetailPage = () => {
               ที่อยู่
             </h3>
             <div className="space-y-3">
-              <p className="text-gray-900">{shop.address}</p>
-              {shop.district && (
-                <p className="text-gray-600 text-sm">{shop.district}</p>
-              )}
-              
+              {/* Parse and display address components */}
+              {(() => {
+                const addressParts = parseAddress(shop.address);
+
+                if (addressParts) {
+                  return (
+                    <div className="space-y-2">
+                      {/* House Number */}
+                      {addressParts.house_number && (
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 w-28 flex-shrink-0">บ้านเลขที่:</span>
+                          <span className="text-sm text-gray-900">{addressParts.house_number}</span>
+                        </div>
+                      )}
+
+                      {/* Moo */}
+                      {addressParts.moo && (
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 w-28 flex-shrink-0">หมู่ที่:</span>
+                          <span className="text-sm text-gray-900">{addressParts.moo}</span>
+                        </div>
+                      )}
+
+                      {/* Soi */}
+                      {addressParts.soi && (
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 w-28 flex-shrink-0">ซอย:</span>
+                          <span className="text-sm text-gray-900">{addressParts.soi}</span>
+                        </div>
+                      )}
+
+                      {/* Subdistrict */}
+                      {addressParts.subdistrict && (
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 w-28 flex-shrink-0">ตำบล/แขวง:</span>
+                          <span className="text-sm text-gray-900">{addressParts.subdistrict}</span>
+                        </div>
+                      )}
+
+                      {/* District */}
+                      {addressParts.district && (
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 w-28 flex-shrink-0">อำเภอ/เขต:</span>
+                          <span className="text-sm text-gray-900">{addressParts.district}</span>
+                        </div>
+                      )}
+
+                      {/* Province */}
+                      {addressParts.province && (
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 w-28 flex-shrink-0">จังหวัด:</span>
+                          <span className="text-sm text-gray-900">{addressParts.province}</span>
+                        </div>
+                      )}
+
+                      {/* Postal Code */}
+                      {addressParts.postal_code && (
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 w-28 flex-shrink-0">รหัสไปรษณีย์:</span>
+                          <span className="text-sm text-gray-900">{addressParts.postal_code}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                } else {
+                  // Fallback: Show original address string if parsing fails
+                  return <p className="text-gray-900">{shop.address}</p>;
+                }
+              })()}
+
+              {/* Phone Number */}
               {shop.phone_number && (
-                <div className="flex items-center space-x-2 pt-2">
-                  <PhoneIcon className="w-4 h-4 text-gray-600" />
-                  <a href={`tel:${shop.phone_number}`} className="text-gray-900 hover:text-indigo-600">
+                <div className="flex items-start pt-3 border-t border-gray-100">
+                  <span className="text-sm font-medium text-gray-600 w-28 flex-shrink-0">เบอร์โทร:</span>
+                  <a
+                    href={`tel:${shop.phone_number}`}
+                    className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
                     {shop.phone_number}
                   </a>
                 </div>
               )}
 
-              {/* พิกัดที่ตั้ง */}
+              {/* Coordinates */}
               {shop.latitude && shop.longitude && (
-                <div className="pt-3 border-t">
-                  <div className="text-sm space-y-1 mb-3">
-                    <p className="text-gray-600">📌 Lat: <span className="text-gray-900">{shop.latitude}</span></p>
-                    <p className="text-gray-600 ml-4">Long: <span className="text-gray-900">{shop.longitude}</span></p>
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="space-y-2 mb-3">
+                    <div className="flex items-start">
+                      <span className="text-sm font-medium text-gray-600 w-28 flex-shrink-0">พิกัด:</span>
+                      <div className="text-sm text-gray-900">
+                        <div>Lat: {shop.latitude}</div>
+                        <div>Long: {shop.longitude}</div>
+                      </div>
+                    </div>
                   </div>
                   <a
                     href={`https://www.google.com/maps?q=${shop.latitude},${shop.longitude}`}
@@ -294,9 +509,8 @@ const ShopDetailPage = () => {
                             {[...Array(5)].map((_, i) => (
                               <StarIconSolid
                                 key={i}
-                                className={`w-4 h-4 ${
-                                  i < parseFloat(review.rating) ? 'text-yellow-400' : 'text-gray-300'
-                                }`}
+                                className={`w-4 h-4 ${i < parseFloat(review.rating) ? 'text-yellow-400' : 'text-gray-300'
+                                  }`}
                               />
                             ))}
                           </div>
@@ -316,7 +530,7 @@ const ShopDetailPage = () => {
 
         {/* Sidebar - Right Side */}
         <div className="space-y-4 sm:space-y-6">
-          
+
           {/* คุณภาพอากาศ */}
           {shop.environmentalMetrics && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -383,6 +597,36 @@ const ShopDetailPage = () => {
             </div>
           )}
 
+          {/* Data Consent Status */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">สถานะการยินยอมข้อมูล</h3>
+            <div className="space-y-3">
+              {shop.is_data_usage_consented ? (
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                  <span className="text-gray-700 font-medium">ลูกค้ากดยินยอม:</span>
+                  <div className="flex items-center space-x-2">
+                    <CheckCircleIcon className="w-6 h-6 text-green-600" />
+                    <span className="text-sm font-medium text-green-600">ยินยอม</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <span className="text-gray-700 font-medium">ลูกค้ากดยินยอม:</span>
+                  <div className="flex items-center space-x-2">
+                    <XCircleIcon className="w-6 h-6 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-500">ไม่ยินยอม</span>
+                  </div>
+                </div>
+              )}
+              {shop.data_consent_at && (
+                <p className="text-xs text-gray-500 text-center pt-2 border-t border-gray-100">
+                  อัพเดทเมื่อ: {formatDate(shop.data_consent_at)}
+                </p>
+              )}
+            </div>
+          </div>
+
+
           {/* อุปกรณ์ */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">อุปกรณ์</h3>
@@ -417,14 +661,48 @@ const ShopDetailPage = () => {
               เวลาเปิด-ปิด
             </h3>
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">เปิด:</span>
-                <span className="font-medium text-gray-900">{shop.open_time?.substring(0, 5) || '-'}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">ปิด:</span>
-                <span className="font-medium text-gray-900">{shop.close_time?.substring(0, 5) || '-'}</span>
-              </div>
+              {shop.openingHours && shop.openingHours.length > 0 ? (
+                <>
+                  {/* แสดงวันที่เปิด */}
+                  {shop.openingHours
+                    .filter(hour => hour.is_open)
+                    .slice(0, 1)
+                    .map((hour, index) => (
+                      <React.Fragment key={index}>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">เปิด:</span>
+                          <span className="font-medium text-gray-900">
+                            {hour.open_time?.substring(0, 5) || '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">ปิด:</span>
+                          <span className="font-medium text-gray-900">
+                            {hour.close_time?.substring(0, 5) || '-'}
+                          </span>
+                        </div>
+                      </React.Fragment>
+                    ))
+                  }
+                  {/* แสดงจำนวนวันที่เปิด */}
+                  <div className="pt-2 mt-2 border-t border-gray-200">
+                    <div className="text-sm text-gray-600">
+                      เปิดทำการ {shop.openingHours.filter(h => h.is_open).length} วัน
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">เปิด:</span>
+                    <span className="font-medium text-gray-900">{shop.open_time?.substring(0, 5) || '-'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">ปิด:</span>
+                    <span className="font-medium text-gray-900">{shop.close_time?.substring(0, 5) || '-'}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

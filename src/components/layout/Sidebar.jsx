@@ -24,6 +24,14 @@ const Sidebar = ({ isOpen, onClose }) => {
     },
     {
       id: 2,
+      name: 'จัดการสินค้า',
+      path: '/products',
+      icon: ShoppingBagIcon,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
+    },
+    {
+      id: 3,
       name: 'จัดการร้านค้า',
       path: '/shops',
       icon: ShoppingBagIcon,
@@ -31,15 +39,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       bgColor: 'bg-purple-50'
     },
     {
-      id: 3,
-      name: 'จัดการอุปกรณ์',
-      path: '/devices',
-      icon: CogIcon,
-      color: 'text-gray-600',
-      bgColor: 'bg-gray-50'
-    },
-    {
-      id: 4,
+      id: 5,
       name: 'ผู้ใช้งาน',
       path: '/users',
       icon: UserGroupIcon,

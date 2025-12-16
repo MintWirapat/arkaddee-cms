@@ -7,7 +7,8 @@ import {
   ChartBarIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ClockIcon
+  ClockIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import api from '../../services/api';
 
@@ -35,25 +36,23 @@ const Dashboard = () => {
       const shops = Array.isArray(shopsResponse) ? shopsResponse : [];
       
       // Fetch devices
-      const devicesResponse = await api.device.getAll();
+      const devicesResponse = await api.deviceStore.getAll();
+      console.log('✅ Devices fetched for stats:', devicesResponse);
       const devices = devicesResponse.data || devicesResponse || [];
-      
-      // Count bound devices
+    
       let boundCount = 0;
-      for (const shop of shops) {
-        try {
-          const shopDevices = await api.shop.getDevices(shop.id);
-          const deviceList = shopDevices.data || shopDevices || [];
-          boundCount += deviceList.length;
-        } catch (error) {
-          // Skip if can't get devices
-        }
+      try {
+        const boundResponse = await api.deviceStore.getBoundCount();
+        console.log('✅ Bound device count response:', boundResponse);
+        boundCount = boundResponse.count || 0;
+      } catch (error) {
+        console.warn('Could not fetch bound device count:', error);
+        boundCount = 0;
       }
-
       setStats({
         totalShops: shops.length,
-        approvedShops: shops.filter(s => s.is_approved).length,
-        pendingShops: shops.filter(s => !s.is_approved).length,
+        approvedShops: shops.filter(s => s.status == 'active').length,
+        pendingShops: shops.filter(s => s.status != 'active').length,
         totalDevices: devices.length,
         boundDevices: boundCount,
         unboundDevices: devices.length - boundCount
@@ -249,11 +248,11 @@ const Dashboard = () => {
           </button>
           
           <button
-            onClick={() => navigate('/devices')}
+            onClick={() => navigate('/users')}
             className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-4 transition-all text-left"
           >
-            <ComputerDesktopIcon className="w-6 h-6 mb-2" />
-            <p className="font-semibold">เพิ่มอุปกรณ์</p>
+            <UserGroupIcon className="w-6 h-6 mb-2" />
+            <p className="font-semibold">ผู้ใช้งาน</p>
           </button>
           
           <button

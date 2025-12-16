@@ -1,0 +1,392 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { ArrowLeftIcon, CheckIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { productAPI } from '../../services/api';
+
+const ProductEditPage = () => {
+  const { productId } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [currentImage, setCurrentImage] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    device_type: '',
+    model: '',
+    description: '',
+    image_path: '',
+    is_active: true
+  });
+
+  useEffect(() => {
+    fetchProduct();
+  }, [productId]);
+
+  const fetchProduct = async () => {
+    try {
+      setLoading(true);
+      const response = await productAPI.getById(productId);
+      const product = response.data;
+      setFormData({
+        name: product.name || '',
+        device_type: product.device_type || '',
+        model: product.model || '',
+        description: product.description || '',
+        image_path: product.image_path || '',
+        is_active: product.is_active !== false
+      });
+      setCurrentImage(product.image_path);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching product:', err);
+      setError('ไม่สามารถดึงข้อมูลสินค้าได้');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  // Handle image selection
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('ขนาดไฟล์ต้องน้อยกว่า 5MB');
+        return;
+      }
+
+      setImageFile(file);
+      setError(null);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreview(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remove selected image
+  const handleRemoveNewImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validation
+    if (!formData.name.trim()) {
+      setError('กรุณากรอกชื่อสินค้า');
+      return;
+    }
+    if (!formData.device_type.trim()) {
+      setError('กรุณากรอกประเภทอุปกรณ์');
+      return;
+    }
+    if (!formData.model.trim()) {
+      setError('กรุณากรอกรุ่น');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      // Step 1: Update product info
+      const response = await productAPI.update(productId, {
+        name: formData.name.trim(),
+        device_type: formData.device_type.trim(),
+        model: formData.model.trim(),
+        description: formData.description.trim() || null,
+        image_path: formData.image_path.trim() || null,
+        is_active: formData.is_active
+      });
+
+      if (response.success) {
+        // Step 2: Upload image if selected
+        if (imageFile) {
+          try {
+            const imageFormData = new FormData();
+            imageFormData.append('image', imageFile);
+
+            const imageResponse = await fetch(
+              `${import.meta.env.VITE_API_URL}/products/${productId}/image`,
+              {
+                method: 'POST',
+                body: imageFormData,
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+              }
+            );
+
+            if (!imageResponse.ok) {
+              console.warn('Image upload failed, but product was updated');
+            }
+          } catch (imgError) {
+            console.warn('Image upload error:', imgError);
+            // Don't fail the whole operation if image upload fails
+          }
+        }
+
+        // Navigate back
+        navigate(`/products/${productId}`);
+      }
+    } catch (err) {
+      console.error('Error updating product:', err);
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('ไม่สามารถแก้ไขสินค้าได้');
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <Link
+            to={`/products/${productId}`}
+            className="inline-flex items-center space-x-2 text-indigo-600 hover:text-indigo-700 mb-4"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+            <span>กลับ</span>
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900">แก้ไขสินค้า</h1>
+        </div>
+      </div>
+
+      {/* Form Card */}
+      <div className="bg-white rounded-lg shadow p-6">
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start">
+            <div className="flex-1">{error}</div>
+            <button
+              onClick={() => setError(null)}
+              className="ml-2 text-red-600 hover:text-red-800"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Name Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              ชื่อสินค้า <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="เช่น Arkad HM"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              disabled={saving}
+            />
+          </div>
+
+          {/* Device Type Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              ประเภทอุปกรณ์ <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="device_type"
+              value={formData.device_type}
+              onChange={handleChange}
+              placeholder="เช่น Arkad_HM"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              disabled={saving}
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              ใช้สำหรับการระบุประเภทอุปกรณ์ในระบบ
+            </p>
+          </div>
+
+          {/* Model Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              รุ่น <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="model"
+              value={formData.model}
+              onChange={handleChange}
+              placeholder="เช่น Model Arkad-HM"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              disabled={saving}
+            />
+          </div>
+
+          {/* Description Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              รายละเอียด
+            </label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="กรอกรายละเอียดสินค้า"
+              rows="4"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              disabled={saving}
+            />
+          </div>
+
+          {/* Current Image Display */}
+          {currentImage && !imagePreview && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                รูปภาพปัจจุบัน
+              </label>
+              <div className="relative inline-block">
+                <img
+                  src={`https://api.arkaddee.com${currentImage}`}
+                  alt="Current product"
+                  className="h-48 w-48 object-cover rounded-lg border border-gray-200"
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/200?text=No+Image';
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* New Image Preview */}
+          {imagePreview && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                รูปภาพใหม่
+              </label>
+              <div className="relative inline-block">
+                <img
+                  src={imagePreview}
+                  alt="Product preview"
+                  className="h-48 w-48 object-cover rounded-lg border border-gray-200"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveNewImage}
+                  className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="mt-2 text-sm text-gray-600">
+                ไฟล์: {imageFile?.name}
+              </p>
+            </div>
+          )}
+
+          {/* Image Upload Field */}
+          {!imagePreview && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                เปลี่ยนรูปภาพ
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <input
+                  type="file"
+                  id="image-upload"
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  disabled={saving}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="flex flex-col items-center justify-center cursor-pointer"
+                >
+                  <PhotoIcon className="w-12 h-12 text-gray-400 mb-2" />
+                  <span className="text-sm font-medium text-gray-700">
+                    คลิกเพื่ออัปโหลดรูปภาพ
+                  </span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    PNG, JPG, GIF (Max 5MB)
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Active Status Checkbox */}
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              name="is_active"
+              id="is_active"
+              checked={formData.is_active}
+              onChange={handleChange}
+              disabled={saving}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+              ใช้งาน
+            </label>
+            <span className="text-sm text-gray-500">
+              {formData.is_active ? '(ใช้งาน)' : '(ปิดใช้งาน)'}
+            </span>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+            <Link
+              to={`/products/${productId}`}
+              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              {...(saving && { onClick: (e) => e.preventDefault() })}
+            >
+              ยกเลิก
+            </Link>
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center space-x-2 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <CheckIcon className="w-5 h-5" />
+              <span>{saving ? 'กำลังบันทึก...' : 'บันทึก'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ProductEditPage;

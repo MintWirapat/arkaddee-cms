@@ -25,7 +25,7 @@ const DeviceListPage = () => {
   const fetchDevices = async () => {
     setLoading(true);
     try {
-      const response = await api.device.getAll();
+      const response = await api.deviceStore.getAll();
       console.log('✅ Devices fetched:', response);
       setDevices(response.data || response || []);
     } catch (error) {
@@ -129,7 +129,7 @@ const DeviceListPage = () => {
                     <ComputerDesktopIcon className="w-6 h-6 text-indigo-600" />
                   </div>
                   <div className="ml-3">
-                    <h3 className="font-semibold text-gray-900">{device.name || 'ไม่มีชื่อ'}</h3>
+                    <h3 className="font-semibold text-gray-900">{device.device_type + '  ' + device.device_id || 'ไม่มีชื่อ'}</h3>
                     <p className="text-sm text-gray-500">{device.device_type || 'ไม่ระบุประเภท'}</p>
                   </div>
                 </div>

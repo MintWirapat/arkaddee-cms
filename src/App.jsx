@@ -14,6 +14,12 @@ import RegisterPage from './components/auth/RegisterPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import ProfilePage from './components/profile/ProfilePage';
 
+// ✅ เพิ่ม Product Components
+import ProductListPage from './components/products/ProductListPage';
+import ProductDetailPage from './components/products/ProductDetailPage';
+import ProductCreatePage from './components/products/ProductCreatePage';
+import ProductEditPage from './components/products/ProductEditPage';
+
 function App() {
   return (
     <BrowserRouter>
@@ -31,6 +37,12 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="profile" element={<ProfilePage />} />
+          
+          {/* ✅ Product Routes */}
+          <Route path="products" element={<ProductListPage />} />
+          <Route path="products/create" element={<ProductCreatePage />} />
+          <Route path="products/:productId" element={<ProductDetailPage />} />
+          <Route path="products/:productId/edit" element={<ProductEditPage />} />
           
           {/* Shop Routes */}
           <Route path="shops" element={<ShopList />} />
