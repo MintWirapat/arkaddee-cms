@@ -90,7 +90,7 @@ const ProductListPage = () => {
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">จัดการสินค้า</h1>
+          <h1 className="text-2xl font-bold text-gray-900">จัดการอุปกรณ์</h1>
           <p className="mt-1 text-sm text-gray-600">
             รวม {filteredProducts.length} รายการจากทั้งหมด {products.length} รายการ
           </p>

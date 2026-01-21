@@ -16,6 +16,7 @@ const ProductDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchProduct();
@@ -37,11 +38,13 @@ const ProductDetailPage = () => {
 
   const handleDelete = async () => {
     try {
+      setDeleting(true);
       await productAPI.delete(productId);
       navigate('/products');
     } catch (err) {
       console.error('Error deleting product:', err);
-      alert('ไม่สามารถลบสินค้าได้');
+      setError('ไม่สามารถลบสินค้าได้');
+      setDeleting(false);
     }
   };
 
@@ -83,6 +86,7 @@ const ProductDetailPage = () => {
           <button
             onClick={() => setDeleteConfirm(true)}
             className="inline-flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            disabled={deleting}
           >
             <TrashIcon className="w-5 h-5" />
             <span>ลบ</span>
@@ -194,7 +198,17 @@ const ProductDetailPage = () => {
               </div>
             )}
 
-            
+            {/* Image Path */}
+            {product.image_path && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  เส้นทางรูปภาพ
+                </label>
+                <p className="mt-2 text-sm text-gray-600 font-mono break-all">
+                  {product.image_path}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -212,15 +226,17 @@ const ProductDetailPage = () => {
             <div className="flex space-x-3 justify-end">
               <button
                 onClick={() => setDeleteConfirm(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                disabled={deleting}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
               >
-                ลบ
+                {deleting ? 'กำลังลบ...' : 'ลบ'}
               </button>
             </div>
           </div>

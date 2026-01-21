@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeftIcon, PlusIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { productAPI } from '../../services/api';
+import { productAPI, imageConverter } from '../../services/api';
 
 const ProductCreatePage = () => {
   const navigate = useNavigate();
@@ -80,51 +80,38 @@ const ProductCreatePage = () => {
       setLoading(true);
       setError(null);
 
+      const data = new FormData();
+
+    // เพิ่มข้อมูลทั่วไป
+    data.append('name', formData.name);
+    data.append('device_type', formData.device_type);
+    data.append('model', formData.model);
+    data.append('description', formData.description);
+    
+
+    // เพิ่มไฟล์รูปภาพ (ถ้ามี)
+    if (imageFile) {
+      data.append('image', imageFile);
+    }
       // Step 1: Create product
-      const response = await productAPI.create({
-        name: formData.name.trim(),
-        device_type: formData.device_type.trim(),
-        model: formData.model.trim(),
-        description: formData.description.trim() || null,
-        image_path: null // Will be updated after image upload
-      });
+      console.log('📝 Creating product...');
+      const response = await fetch('https://api.arkaddee.com/api/products', {
+        method: 'POST',
+        body: data
+      }).then(res => res.json());
 
       if (response.success && response.data.id) {
         const productId = response.data.id;
+        console.log('✅ Product created with ID:', productId);
 
-        // Step 2: Upload image if selected
-        if (imageFile) {
-          try {
-            const imageFormData = new FormData();
-            imageFormData.append('image', imageFile);
-
-            const imageResponse = await fetch(
-              `${import.meta.env.VITE_API_URL}/products/${productId}/image`,
-              {
-                method: 'POST',
-                body: imageFormData,
-                headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-              }
-            );
-
-            if (!imageResponse.ok) {
-              console.warn('Image upload failed, but product was created');
-            }
-          } catch (imgError) {
-            console.warn('Image upload error:', imgError);
-            // Don't fail the whole operation if image upload fails
-          }
-        }
-
+    
         // Navigate to the new product detail page
         navigate(`/products/${productId}`);
       }
     } catch (err) {
-      console.error('Error creating product:', err);
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
+      console.error('❌ Error creating product:', err);
+      if (err.message) {
+        setError(err.message);
       } else {
         setError('ไม่สามารถเพิ่มสินค้าได้');
       }
@@ -262,14 +249,14 @@ const ProductCreatePage = () => {
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                 <input
                   type="file"
-                  id="image-upload"
+                  id="image"
                   onChange={handleImageChange}
                   accept="image/*"
                   disabled={loading}
                   className="hidden"
                 />
                 <label
-                  htmlFor="image-upload"
+                  htmlFor="image"
                   className="flex flex-col items-center justify-center cursor-pointer"
                 >
                   <PhotoIcon className="w-12 h-12 text-gray-400 mb-2" />
@@ -288,8 +275,7 @@ const ProductCreatePage = () => {
           <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
             <Link
               to="/products"
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-              {...(loading && { onClick: (e) => e.preventDefault() })}
+              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               ยกเลิก
             </Link>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeftIcon, CheckIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CheckIcon, PhotoIcon, XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { productAPI } from '../../services/api';
 
 const ProductEditPage = () => {
@@ -12,6 +12,7 @@ const ProductEditPage = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [currentImage, setCurrentImage] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     device_type: '',
@@ -59,7 +60,7 @@ const ProductEditPage = () => {
   // Handle image selection
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    
+
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
@@ -112,54 +113,54 @@ const ProductEditPage = () => {
       setSaving(true);
       setError(null);
 
-      // Step 1: Update product info
-      const response = await productAPI.update(productId, {
-        name: formData.name.trim(),
-        device_type: formData.device_type.trim(),
-        model: formData.model.trim(),
-        description: formData.description.trim() || null,
-        image_path: formData.image_path.trim() || null,
-        is_active: formData.is_active
-      });
+      const data = new FormData();
 
-      if (response.success) {
-        // Step 2: Upload image if selected
-        if (imageFile) {
-          try {
-            const imageFormData = new FormData();
-            imageFormData.append('image', imageFile);
+      // เพิ่มข้อมูลทั่วไป
+      data.append('name', formData.name);
+      data.append('device_type', formData.device_type);
+      data.append('model', formData.model);
+      data.append('description', formData.description);
+      data.append('is_active', formData.is_active);
 
-            const imageResponse = await fetch(
-              `${import.meta.env.VITE_API_URL}/products/${productId}/image`,
-              {
-                method: 'POST',
-                body: imageFormData,
-                headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-              }
-            );
+      // เพิ่มไฟล์รูปภาพ (ถ้ามี)
+      if (imageFile) {
+        data.append('image', imageFile);
+      }
+      // Step 1: Create product
+      console.log('📝 Creating product...');
+      const response = await fetch(`https://api.arkaddee.com/api/products/${productId}`, {
+        method: 'PUT',
+        body: data
+      }).then(res => res.json());
 
-            if (!imageResponse.ok) {
-              console.warn('Image upload failed, but product was updated');
-            }
-          } catch (imgError) {
-            console.warn('Image upload error:', imgError);
-            // Don't fail the whole operation if image upload fails
-          }
-        }
+      if (response.success && response.data.id) {
+        const productId = response.data.id;
+        console.log('✅ Product created with ID:', productId);
 
-        // Navigate back
+
+        // Navigate to the new product detail page
         navigate(`/products/${productId}`);
       }
     } catch (err) {
       console.error('Error updating product:', err);
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
+      if (err.message) {
+        setError(err.message);
       } else {
         setError('ไม่สามารถแก้ไขสินค้าได้');
       }
     } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      setSaving(true);
+      await productAPI.delete(productId);
+      navigate('/products');
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      setError('ไม่สามารถลบสินค้าได้');
       setSaving(false);
     }
   };
@@ -186,6 +187,14 @@ const ProductEditPage = () => {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">แก้ไขสินค้า</h1>
         </div>
+        <button
+          onClick={() => setDeleteConfirm(true)}
+          className="inline-flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          disabled={saving}
+        >
+          <TrashIcon className="w-5 h-5" />
+          <span>ลบ</span>
+        </button>
       </div>
 
       {/* Form Card */}
@@ -324,14 +333,14 @@ const ProductEditPage = () => {
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                 <input
                   type="file"
-                  id="image-upload"
+                  id="image"
                   onChange={handleImageChange}
                   accept="image/*"
                   disabled={saving}
                   className="hidden"
                 />
                 <label
-                  htmlFor="image-upload"
+                  htmlFor="image"
                   className="flex flex-col items-center justify-center cursor-pointer"
                 >
                   <PhotoIcon className="w-12 h-12 text-gray-400 mb-2" />
@@ -385,6 +394,36 @@ const ProductEditPage = () => {
           </div>
         </form>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              ยืนยันการลบสินค้า
+            </h3>
+            <p className="text-gray-600 mb-6">
+              คุณแน่ใจหรือไม่ว่าต้องการลบสินค้า "{formData.name}"? การกระทำนี้ไม่สามารถยกเลิกได้
+            </p>
+            <div className="flex space-x-3 justify-end">
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                disabled={saving}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={saving}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {saving ? 'กำลังลบ...' : 'ลบ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

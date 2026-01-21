@@ -20,6 +20,10 @@ import ProductDetailPage from './components/products/ProductDetailPage';
 import ProductCreatePage from './components/products/ProductCreatePage';
 import ProductEditPage from './components/products/ProductEditPage';
 
+// ✅ NEW - Product Management & Catalog
+import ProductManagementPage from './components/products/ProductManagementPage';
+import ProductCatalogPage from './pages/ProductCatalogPage';
+
 function App() {
   return (
     <BrowserRouter>
@@ -27,6 +31,9 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        {/* Public Catalog */}
+        <Route path="/catalog" element={<ProductCatalogPage />} />
 
         {/* Protected Routes */}
         <Route path="/" element={
@@ -38,11 +45,14 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="profile" element={<ProfilePage />} />
           
-          {/* ✅ Product Routes */}
+          {/* ✅ Product Routes - Existing */}
           <Route path="products" element={<ProductListPage />} />
           <Route path="products/create" element={<ProductCreatePage />} />
           <Route path="products/:productId" element={<ProductDetailPage />} />
           <Route path="products/:productId/edit" element={<ProductEditPage />} />
+
+          {/* ✅ NEW - Product Management CMS */}
+          <Route path="product-management" element={<ProductManagementPage />} />
           
           {/* Shop Routes */}
           <Route path="shops" element={<ShopList />} />

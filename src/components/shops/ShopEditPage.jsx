@@ -35,9 +35,14 @@ const ShopEditPage = () => {
     fetchAll();
   }, [id]);
 
+  // 🔥 FIX: ปรับปรุง transformBackendToForm เพื่อให้ location ถูกต้อง
   const transformBackendToForm = (backendData, allTypes, allCuisines) => {
     console.log('📄 Transforming backend data to form structure...');
     console.log('📥 Backend data:', backendData);
+    console.log('📍 Backend location:', {
+      latitude: backendData.latitude,
+      longitude: backendData.longitude
+    });
 
     let addressComponents = {
       house_number: '',
@@ -168,6 +173,10 @@ const ShopEditPage = () => {
       }));
     }
 
+    // 🔥 FIX: ดึง latitude/longitude จาก backendData อย่างถูกต้อง
+    const latitude = parseFloat(backendData.latitude) || 13.7563;
+    const longitude = parseFloat(backendData.longitude) || 100.5018;
+
     const formData = {
       name: backendData.name || '',
       description: backendData.description || '',
@@ -177,8 +186,8 @@ const ShopEditPage = () => {
         (typeof backendData.types[0] === 'string' ? backendData.types[0] : backendData.types[0].name) : '',
       open_time: backendData.open_time || '09:00:00',
       close_time: backendData.close_time || '21:00:00',
-      latitude: parseFloat(backendData.latitude) || 13.7563,
-      longitude: parseFloat(backendData.longitude) || 100.5018,
+      latitude: latitude,
+      longitude: longitude,
       phone: backendData.phone_number || '',
       has_air_purifier: backendData.has_air_purifier || false,
       has_fresh_air_system: backendData.has_air_ventilator || false,
@@ -194,9 +203,10 @@ const ShopEditPage = () => {
       province: addressComponents.province,
       subdistrict: addressComponents.subdistrict,
       postal_code: addressComponents.postal_code,
+      // 🔥 FIX: ดึง location object จาก backendData อย่างถูกต้อง
       location: {
-        latitude: parseFloat(backendData.latitude) || 13.7563,
-        longitude: parseFloat(backendData.longitude) || 100.5018
+        latitude: latitude,
+        longitude: longitude
       },
       address: {
         full_address: backendData.address || '',
@@ -212,21 +222,24 @@ const ShopEditPage = () => {
     };
 
     console.log('✅ Transformed form data:', formData);
+    console.log('📍 Form location:', formData.location);
     
     return formData;
   };
 
   /**
-   * ✅ FIX: ส่ง images เป็น array เดียว ไม่แยก existing/new
+   * ✅ FIX: ปรับปรุง transformFormToBackend เพื่อให้ location อัปเดตถูกต้อง
    */
   const transformFormToBackend = (formData) => {
     console.log('📄 Transforming form data to backend structure...');
     console.log('📥 Form data:', formData);
+    console.log('📍 Location data:', {
+      latitude: formData.latitude || formData.location?.latitude,
+      longitude: formData.longitude || formData.location?.longitude
+    });
 
     // ✅ รวมรูปทั้งหมดเป็น array เดียว
     const allImages = [];
-
-    const statusToSend = formData.isApproved ? 'active' : 'pending';
 
     if (formData.images && Array.isArray(formData.images)) {
       formData.images.forEach(img => {
@@ -243,6 +256,15 @@ const ShopEditPage = () => {
 
     console.log('📸 All images (combined):', allImages);
 
+    // 🔥 FIX: ต้องดึง latitude/longitude จาก location object ถูกต้อง
+    const latitude = parseFloat(formData.location?.latitude || formData.latitude || 13.7563);
+    const longitude = parseFloat(formData.location?.longitude || formData.longitude || 100.5018);
+
+    // ⚠️ Validate coordinates
+    if (isNaN(latitude) || isNaN(longitude)) {
+      console.warn('⚠️ Invalid coordinates detected:', { latitude, longitude });
+    }
+
     const backendData = {
       name: formData.name,
       description: formData.description,
@@ -256,8 +278,9 @@ const ShopEditPage = () => {
         zipCode: formData.postal_code || formData.address?.postal_code || '',
         mobile: formData.phone || ''
       },
-      latitude: parseFloat(formData.latitude || formData.location?.latitude),
-      longitude: parseFloat(formData.longitude || formData.location?.longitude),
+      // 🔥 FIX: ส่ง latitude/longitude ที่ดึงมาจาก location object
+      latitude: latitude,
+      longitude: longitude,
       open_time: formData.open_time,
       close_time: formData.close_time,
       price_range: formData.price_range,
@@ -269,12 +292,16 @@ const ShopEditPage = () => {
       images: allImages,
       hasAirPurifier: formData.has_air_purifier || false,
       hasAirVentilator: formData.has_fresh_air_system || false,
-      // ✅ ส่ง status: 1 (approved) หรือ 0 (pending)
+      // ✅ ส่ง status: 'active' (approved) หรือ 'pending' (not approved)
       status: formData.isApproved ? 'active' : 'pending'
     };
 
     console.log('✅ Transformed backend data:', backendData);
     console.log('🏠 Address object:', backendData.address);
+    console.log('📍 Location (Lat/Long):', { 
+      latitude: backendData.latitude, 
+      longitude: backendData.longitude 
+    });
     console.log('📸 Images array:', backendData.images);
 
     return backendData;
@@ -307,12 +334,12 @@ const ShopEditPage = () => {
       
       console.log('📤 Sending to backend:', backendData);
 
-     const response = await api.shop.update(id, backendData);
+      const response = await api.shop.update(id, backendData);
       console.log('✅ Update response:', response);
 
       alert('✅ แก้ไขข้อมูลร้านค้าสำเร็จ!');
       
-     navigate(`/shops/${id}`, { replace: true });
+      navigate(`/shops/${id}`, { replace: true });
       setTimeout(() => {
         window.location.reload();
       }, 100);

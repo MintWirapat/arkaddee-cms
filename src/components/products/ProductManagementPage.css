@@ -1,0 +1,495 @@
+/* ===================================
+   ProductManagementPage.css
+   สไตล์สำหรับหน้าจัดการสินค้า
+   =================================== */
+
+.pms-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #333;
+}
+
+/* ===== HEADER ===== */
+.pms-header {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.pms-header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #667eea;
+  font-weight: 700;
+}
+
+/* ===== LOGIN PAGE ===== */
+.pms-login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.pms-login-box {
+  background: white;
+  padding: 50px;
+  border-radius: 15px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 400px;
+}
+
+.pms-login-box h1 {
+  text-align: center;
+  margin: 0 0 5px 0;
+  color: #667eea;
+  font-size: 32px;
+}
+
+.pms-login-box p {
+  text-align: center;
+  color: #999;
+  margin: 0 0 30px 0;
+}
+
+/* ===== FORM ===== */
+.pms-form-group {
+  margin-bottom: 20px;
+}
+
+.pms-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.pms-form-group input,
+.pms-form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border 0.3s, box-shadow 0.3s;
+  font-family: inherit;
+}
+
+.pms-form-group input:focus,
+.pms-form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.pms-input-disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* ===== BUTTONS ===== */
+.pms-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+}
+
+.pms-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pms-btn-primary {
+  background: #667eea;
+  color: white;
+  width: 100%;
+}
+
+.pms-btn-primary:hover:not(:disabled) {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.pms-btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.pms-btn-secondary:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.pms-btn-edit {
+  background: #667eea;
+  color: white;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.pms-btn-edit:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.pms-btn-sm {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.pms-btn-xs {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+/* ===== MESSAGES ===== */
+.pms-message {
+  margin: 20px;
+  padding: 15px 20px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  animation: slideDown 0.3s ease;
+}
+
+.pms-message-success {
+  background: #4caf50;
+  color: white;
+}
+
+.pms-message-error {
+  background: #f44336;
+  color: white;
+}
+
+.pms-close-msg {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ===== CONTENT ===== */
+.pms-content {
+  padding: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pms-loader {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  color: white;
+}
+
+/* ===== PRODUCTS LIST ===== */
+.pms-products-list {
+  display: grid;
+  gap: 15px;
+}
+
+.pms-product-item {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pms-product-header {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background: #f9f9f9;
+  border-bottom: 1px solid #eee;
+  transition: background 0.3s;
+}
+
+.pms-product-header:hover {
+  background: #f5f5f5;
+}
+
+.pms-product-info h2 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.pms-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.pms-status-active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.pms-status-coming_soon {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.pms-expand-icon {
+  font-size: 16px;
+  color: #999;
+  transition: transform 0.3s;
+}
+
+/* ===== VARIANTS TABLE ===== */
+.pms-variants-list {
+  padding: 20px;
+  background: white;
+}
+
+.pms-variants-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.pms-variants-table thead {
+  background: #f5f5f5;
+}
+
+.pms-variants-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 2px solid #ddd;
+}
+
+.pms-variants-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.pms-variant-name {
+  font-weight: 600;
+  color: #667eea;
+}
+
+.pms-variant-price {
+  font-weight: 700;
+  color: #f57c00;
+  font-size: 16px;
+}
+
+.pms-variant-stock {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.pms-variant-actions {
+  text-align: right;
+}
+
+/* ===== MODAL ===== */
+.pms-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.pms-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pms-modal-header {
+  padding: 25px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9f9f9;
+}
+
+.pms-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.pms-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #999;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s;
+}
+
+.pms-modal-close:hover {
+  color: #333;
+}
+
+.pms-modal-body {
+  padding: 25px;
+}
+
+.pms-price-preview {
+  background: #e3f2fd;
+  border: 1px solid #667eea;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  color: #667eea;
+  margin-top: 15px;
+  margin-bottom: 20px;
+}
+
+.pms-increase {
+  color: #f44336;
+  margin-left: 8px;
+}
+
+.pms-decrease {
+  color: #4caf50;
+  margin-left: 8px;
+}
+
+.pms-modal-footer {
+  padding: 20px 25px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 10px;
+  background: #f9f9f9;
+}
+
+.pms-modal-footer .pms-btn {
+  flex: 1;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .pms-header {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .pms-header h1 {
+    font-size: 20px;
+  }
+
+  .pms-content {
+    padding: 15px;
+  }
+
+  .pms-login-box {
+    padding: 30px 20px;
+  }
+
+  .pms-product-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .pms-modal-overlay {
+    padding: 10px;
+  }
+
+  .pms-variants-table {
+    font-size: 12px;
+  }
+
+  .pms-variants-table th,
+  .pms-variants-table td {
+    padding: 8px;
+  }
+
+  .pms-btn-edit {
+    width: 100%;
+    margin-top: 8px;
+  }
+}

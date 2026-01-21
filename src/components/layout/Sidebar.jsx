@@ -7,7 +7,9 @@ import {
   CogIcon,
   UserGroupIcon,
   ShieldCheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  TagIcon,
+  ArchiveBoxIcon
 } from '@heroicons/react/24/outline';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -30,6 +32,16 @@ const Sidebar = ({ isOpen, onClose }) => {
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
+    // ✅ NEW - Product Management CMS (เปลี่ยนราคา)
+    {
+      id: 2.5,
+      name: 'จัดการราคา',
+      path: '/product-management',
+      icon: TagIcon,
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-50'
+    },
+
     {
       id: 3,
       name: 'จัดการร้านค้า',

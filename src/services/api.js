@@ -59,10 +59,93 @@ const apiFetch = async (endpoint, options = {}) => {
 };
 
 // ============================================
+// Image Converter - Base64
+// ============================================
+export const imageConverter = {
+  /**
+   * แปลง File object เป็น Base64 string
+   */
+  fileToBase64: (file) => {
+    return new Promise((resolve, reject) => {
+      if (!file) {
+        reject(new Error('ไม่มีไฟล์ที่เลือก'));
+        return;
+      }
+
+      if (!file.type.startsWith('image/')) {
+        reject(new Error('กรุณาเลือกไฟล์รูปภาพเท่านั้น'));
+        return;
+      }
+
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        reject(new Error('ขนาดไฟล์ต้องน้อยกว่า 5MB'));
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        console.log('📸 Image converted to Base64');
+        resolve(reader.result);
+      };
+
+      reader.onerror = () => {
+        reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
+      };
+
+      reader.readAsDataURL(file);
+    });
+  },
+
+  /**
+   * บีบอัดรูปภาพ
+   */
+  compressImage: (base64Image, quality = 0.8) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        ctx.drawImage(img, 0, 0);
+
+        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+        console.log('🖼️ Image compressed');
+        resolve(compressedBase64);
+      };
+
+      img.onerror = () => {
+        reject(new Error('ไม่สามารถโหลดรูปภาพได้'));
+      };
+
+      img.src = base64Image;
+    });
+  },
+
+  /**
+   * แปลงรูปเป็น Base64 พร้อมบีบอัด
+   */
+  fileToCompressedBase64: async (file, quality = 0.8) => {
+    try {
+      const base64 = await imageConverter.fileToBase64(file);
+      const compressed = await imageConverter.compressImage(base64, quality);
+      return compressed;
+    } catch (error) {
+      console.error('❌ Error converting image:', error);
+      throw error;
+    }
+  }
+};
+
+// ============================================
 // Authentication APIs
 // ============================================
 export const authAPI = {
-
   getProfile: () =>
     apiFetch('/auth/me')
 };
@@ -106,12 +189,11 @@ export const shopAPI = {
     formData.append('image', imageFile);
     return apiFetch(`/stores/${id}/image`, {
       method: 'POST',
-      headers: {}, // Let browser set Content-Type for FormData
+      headers: {},
       body: formData
     });
   },
 
-  // Device binding
   getDevices: (shopId) =>
     apiFetch(`/stores/${shopId}/devices`),
 
@@ -159,7 +241,6 @@ export const equipmentAPI = {
       method: 'DELETE'
     }),
 
-  // Get equipment bindings (which shops it's bound to)
   getBindings: (id) =>
     apiFetch(`/equipment/${id}/bindings`)
 };
@@ -193,7 +274,6 @@ export const deviceAPI = {
       method: 'DELETE'
     }),
 
-  // POST /api/device/devicesetup - ผูกอุปกรณ์
   setupDevice: (setupData) =>
     apiFetch('/device/devicesetup', {
       method: 'POST',
@@ -219,50 +299,26 @@ export const deviceStoreAPI = {
       body: JSON.stringify(status)
     }),
 
-  /**
-   * ✅ ดึงอุปกรณ์ที่ผูกกับร้านแล้ว
-   * GET /api/deviceStore/shop/:shopId
-   */
   getShopDevices: (shopId) =>
     apiFetch(`/deviceStore/${shopId}`),
 
-  /**
-   * ✅ ดึงอุปกรณ์ที่สามารถผูกได้
-   * GET /api/deviceStore/available/:shopId
-   */
   getAvailableDevices: (shopId) =>
     apiFetch(`/deviceStore/available/${shopId}`),
 
-  /**
-   * ✅ ผูกอุปกรณ์กับร้านค้า
-   * POST /api/deviceStore/bind
-   */
   bindDevice: (shopId, deviceId, devicetype) =>
     apiFetch('/deviceStore', {
       method: 'POST',
       body: JSON.stringify({ storeId: shopId, deviceId: deviceId, deviceType: devicetype })
     }),
 
-  /**
-   * ✅ ยกเลิกการผูกอุปกรณ์
-   * DELETE /api/deviceStore/unbind
-   */
   unbindDevice: (shopId, deviceId) =>
     apiFetch(`/deviceStore/${shopId}`, {
       method: 'DELETE'
     }),
 
-  /**
-   * ✅ ตรวจสอบว่าอุปกรณ์ถูกผูกกับร้านหรือไม่
-   * GET /api/deviceStore/check/:shopId/:deviceId
-   */
   checkBinding: (shopId, deviceId) =>
     apiFetch(`/deviceStore/check/${shopId}/${deviceId}`),
 
-  /**
-   * ✅ ดึงข้อมูลการผูกทั้งหมด (Admin)
-   * GET /api/deviceStore/all
-   */
   getAllBindings: (filters = {}) => {
     const params = new URLSearchParams();
     if (filters.shopId) params.append('shopId', filters.shopId);
@@ -271,10 +327,6 @@ export const deviceStoreAPI = {
     return apiFetch(`/deviceStore/all${queryString ? `?${queryString}` : ''}`);
   },
 
-  /**
-   * ✅ ดึงสถิติการผูก (Admin)
-   * GET /api/deviceStore/stats
-   */
   getBindingStats: () =>
     apiFetch('/deviceStore/stats')
 };
@@ -325,10 +377,9 @@ export const adminAPI = {
 };
 
 // ============================================
-// User APIs (Mobile App Users)
+// User APIs
 // ============================================
 export const userAPI = {
-  // GET /api/users - ดู user ทั้งหมดในระบบ
   getAll: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return apiFetch(`/users${queryString ? `?${queryString}` : ''}`);
@@ -337,11 +388,9 @@ export const userAPI = {
   getById: (id) =>
     apiFetch(`/users/${id}`),
 
-  // GET /api/users/device - ดูอุปกรณ์ที่ผูกกับ user นี้ (ต้องส่ง token)
   getDevices: (id) =>
     apiFetch(`/users/device/${id}`),
 
-  // PUT /api/users/profile - แก้ไขโปรไฟล์
   updateProfile: (userData) =>
     apiFetch('/users/profile', {
       method: 'PUT',
@@ -354,7 +403,6 @@ export const userAPI = {
       body: JSON.stringify(userData)
     }),
 
-  // DELETE /api/users/device/:id - ลบอุปกรณ์ที่ผูก
   unbindDevice: (deviceId) =>
     apiFetch(`/users/device/${deviceId}`, {
       method: 'DELETE'
@@ -406,7 +454,7 @@ export const uploadAPI = {
 
     return apiFetch('/upload/image', {
       method: 'POST',
-      headers: {}, // Let browser set Content-Type
+      headers: {},
       body: formData
     });
   },
@@ -425,6 +473,9 @@ export const uploadAPI = {
   }
 };
 
+// ============================================
+// Product APIs - Base64 Upload
+// ============================================
 export const productAPI = {
   getAll: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
@@ -434,7 +485,9 @@ export const productAPI = {
   getById: (id) =>
     apiFetch(`/products/${id}`),
 
+    
   create: (productData) =>
+    console.log('Creating product with data:', productData) ||
     apiFetch('/products', {
       method: 'POST',
       body: JSON.stringify(productData)
@@ -449,8 +502,17 @@ export const productAPI = {
   delete: (id) =>
     apiFetch(`/products/${id}`, {
       method: 'DELETE'
+    }),
+
+
+  /**
+   * ลบรูปภาพสินค้า
+   */
+  deleteImage: (id) =>
+    apiFetch(`/products/${id}/image`, {
+      method: 'DELETE'
     })
-};  
+};
 
 // ============================================
 // Export all APIs
@@ -460,11 +522,10 @@ export default {
   shop: shopAPI,
   equipment: equipmentAPI,
   device: deviceAPI,
-  deviceStore: deviceStoreAPI,  // ✅ deviceStore Binding API
+  deviceStore: deviceStoreAPI,
   admin: adminAPI,
   user: userAPI,
   stats: statsAPI,
   upload: uploadAPI,
   product: productAPI
-
 };
