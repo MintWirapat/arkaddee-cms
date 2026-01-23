@@ -32,7 +32,6 @@ const Sidebar = ({ isOpen, onClose }) => {
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
-    // ✅ NEW - Product Management CMS (เปลี่ยนราคา)
     {
       id: 2.5,
       name: 'จัดการราคา',
@@ -41,7 +40,6 @@ const Sidebar = ({ isOpen, onClose }) => {
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50'
     },
-
     {
       id: 3,
       name: 'จัดการร้านค้า',
@@ -69,9 +67,9 @@ const Sidebar = ({ isOpen, onClose }) => {
         {/* Logo */}
         <div className="h-16 flex items-center justify-center px-6 border-b border-gray-200">
           <Link to="/dashboard" className="flex items-center space-x-3">
-            <img 
-              src="/src/assets/logoarkad.png" 
-              alt="Logo" 
+            <img
+              src="/logoarkad.png"
+              alt="Arkaddee CMS"
               className="h-14 object-contain"
             />
           </Link>
@@ -152,9 +150,9 @@ const Sidebar = ({ isOpen, onClose }) => {
           {/* Logo with Close Button */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
             <Link to="/dashboard" className="flex items-center space-x-3" onClick={onClose}>
-              <img 
-                src="/src/assets/logoarkad.png" 
-                alt="Logo" 
+              <img
+                src="/logoarkad.png"
+                alt="Arkaddee CMS"
                 className="h-14 object-contain"
               />
             </Link>

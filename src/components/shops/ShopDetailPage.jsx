@@ -59,7 +59,7 @@ const ShopDetailPage = () => {
   };
 
   const getDayName = (dayNumber) => {
-    const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+    const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'];
     return days[dayNumber];
   };
 
